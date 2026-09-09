@@ -1,0 +1,28 @@
+name: Deploy to Helipod VPS
+
+on:
+  push:
+    branches:
+      - main # Pastikan ini sesuai dengan nama branch utama tim kamu (main/master)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Eksekusi Update di VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 156.67.24.112
+          username: root
+          port: 51000
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "🚀 Memulai deployment otomatis..."
+            cd ~/app-services/MyKicksBuddy
+            git pull origin main
+            echo "✅ Kode berhasil ditarik ke VPS!"
+            
+            # Nanti kita tambahkan perintah build/restart .NET di bawah sini
