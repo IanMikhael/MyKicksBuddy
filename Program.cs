@@ -1,7 +1,33 @@
+using System.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using MySqlConnector;
+using MyKicksBuddy.Repositories;
+using MyKicksBuddy.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Database connection (Dapper)
+builder.Services.AddScoped<IDbConnection>(_ =>
+    new MySqlConnection(builder.Configuration.GetConnectionString("Default")));
+
+// Repositories & Services
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAddressRepository, AddressRepository>();
+builder.Services.AddSingleton<DistanceService>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+
+// Cookie authentication
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/auth/login";
+        options.AccessDeniedPath = "/auth/login";
+    });
 
 var app = builder.Build();
 
@@ -14,16 +40,14 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
-
-app.MapStaticAssets();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
-
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
