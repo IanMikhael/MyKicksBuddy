@@ -51,7 +51,7 @@ public class OrderService : IOrderService
             Notes = request.Notes
         };
 
-        var orderId = await ((OrderRepository)_orderRepository).CreateWithItemsAsync(order, request.Items);
+        var orderId = await _orderRepository.CreateWithItemsAsync(order, request.Items);
         
         return (true, null, orderId);
     }
@@ -106,9 +106,8 @@ public class OrderService : IOrderService
         return await _orderRepository.GetDetailByCodeAsync(orderCode);
     }
 
-    public async Task<object> GetAllServicesAsync()
+    public async Task<IEnumerable<ServiceDto>> GetAllServicesAsync()
     {
-        // Mengambil daftar layanan aktif dari database (tabel services)
         return await _orderRepository.GetAllServicesAsync();
     }
 }

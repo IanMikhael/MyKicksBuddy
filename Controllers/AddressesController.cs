@@ -64,7 +64,7 @@ public async Task<IActionResult> Create(
     };
 
     var newId = await _addressRepository.CreateAsync(address);
-    return Ok($"Berhasil, ID baru: {newId}, jarak: {distanceKm} km, userId: {userId}");
+    return Ok(new { message = "Alamat berhasil ditambahkan.", id = newId, distanceKm });
 }
 
     [HttpPost("delete/{id}")]

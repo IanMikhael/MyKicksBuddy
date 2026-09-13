@@ -55,12 +55,11 @@ public class AddressRepository : IAddressRepository
 
         try
         {
-            var result = await _db.ExecuteScalarAsync<long>(sql, address);
-            return result;
+            return await _db.ExecuteScalarAsync<long>(sql, address);
         }
         catch (Exception ex)
         {
-            throw new Exception($"DB Error: {ex.Message} | SQL: {sql}", ex);
+            throw new Exception("Gagal menyimpan alamat.", ex);
         }
     }
 

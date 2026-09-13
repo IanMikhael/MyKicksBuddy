@@ -19,10 +19,10 @@ public class StaffOrdersController : ControllerBase
     }
 
     // Helper untuk mengambil ID staff/admin yang sedang login dari token JWT
-    private long GetStaffId()
+    private long? GetStaffId()
     {
         var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
-        return claim != null && long.TryParse(claim.Value, out var id) ? id : 1;
+        return claim != null && long.TryParse(claim.Value, out var id) ? id : null;
     }
 
     /// <summary>
@@ -32,11 +32,12 @@ public class StaffOrdersController : ControllerBase
     [HttpPatch("{id}/status")]
     public async Task<IActionResult> UpdateOrderStatus(long id, [FromBody] UpdateOrderStatusRequest request)
     {
+        var staffId = GetStaffId();
+        if (staffId is null) return Unauthorized();
+
         try
         {
-            var staffId = GetStaffId();
-            await _orderService.UpdateOrderStatusWithLogAsync(id, request.Status, staffId, request.Notes);
-            
+            await _orderService.UpdateOrderStatusWithLogAsync(id, request.Status, staffId.Value, request.Notes);
             return Ok(new { message = "Status pesanan berhasil diperbarui dan dicatat dalam log." });
         }
         catch (Exception ex)

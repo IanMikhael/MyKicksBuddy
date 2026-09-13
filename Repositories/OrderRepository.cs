@@ -67,10 +67,10 @@ public class OrderRepository : IOrderRepository
             await _db.ExecuteAsync(updateOrderSql, new { Status = status, HandledBy = handledBy, OrderId = orderId }, transaction);
 
             const string insertLogSql = @"
-                INSERT INTO order_status_log (order_id, status, note, created_at)
-                VALUES (@OrderId, @Status, @Notes, CURRENT_TIMESTAMP);";
+                INSERT INTO order_status_log (order_id, status, note, changed_by, created_at)
+                VALUES (@OrderId, @Status, @Notes, @HandledBy, CURRENT_TIMESTAMP);";
 
-            await _db.ExecuteAsync(insertLogSql, new { OrderId = orderId, Status = status, Notes = notes }, transaction);
+            await _db.ExecuteAsync(insertLogSql, new { OrderId = orderId, Status = status, Notes = notes, HandledBy = handledBy }, transaction);
 
             transaction.Commit();
         }
@@ -294,13 +294,15 @@ public class OrderRepository : IOrderRepository
         return orderResponse;
     }
 
-    public async Task<IEnumerable<object>> GetAllServicesAsync()
+    public async Task<IEnumerable<ServiceDto>> GetAllServicesAsync()
     {
         const string sql = @"
-            SELECT id AS Id, name AS Name, price AS Price
+            SELECT id AS Id, name AS Name, price AS Price, 
+                estimated_hours AS EstimatedHours, is_active AS IsActive
             FROM services
+            WHERE is_active = 1
             ORDER BY name ASC;";
 
-        return await _db.QueryAsync<object>(sql);
+        return await _db.QueryAsync<ServiceDto>(sql);
     }
 }

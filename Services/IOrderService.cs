@@ -20,5 +20,5 @@ public interface IOrderService
 
     // Tambahan untuk Chatbot:
     Task<object?> GetOrderByCodeAsync(string orderCode);
-    Task<object> GetAllServicesAsync();
+    Task<IEnumerable<ServiceDto>> GetAllServicesAsync();
 }

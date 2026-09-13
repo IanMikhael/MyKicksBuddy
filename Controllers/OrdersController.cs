@@ -18,10 +18,6 @@ public class OrdersController : ControllerBase
         _orderService = orderService;
     }
 
-    /// <summary>
-    /// Membuat pesanan baru (Khusus Customer)
-    /// Endpoint: POST /orders
-    /// </summary>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateOrderRequest request)
     {
@@ -29,48 +25,43 @@ public class OrdersController : ControllerBase
             return BadRequest(ModelState);
 
         var customerId = GetCustomerId();
-        var (success, error, orderId) = await _orderService.CreateOrderAsync(customerId, request);
+        if (customerId is null) return Unauthorized();
 
-        if (!success)
-            return BadRequest(new { message = error });
+        var result = await _orderService.CreateOrderAsync(customerId.Value, request);
 
-        return Ok(new { message = "Pesanan berhasil dibuat!", orderId });
+        if (!result.Success)
+            return BadRequest(new { message = result.Error });
+
+        return Ok(new { message = "Pesanan berhasil dibuat!", orderId = result.OrderId });
     }
 
-    /// <summary>
-    /// Melihat daftar seluruh pesanan milik customer yang sedang login
-    /// Endpoint: GET /orders
-    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetMyOrders()
     {
         var customerId = GetCustomerId();
-        var orders = await _orderService.GetOrdersByCustomerAsync(customerId);
-        
+        if (customerId is null) return Unauthorized();
+
+        var orders = await _orderService.GetOrdersByCustomerAsync(customerId.Value);
         return Ok(orders);
     }
 
-    /// <summary>
-    /// Melihat detail pesanan lengkap beserta item cucian berdasarkan ID (Khusus Customer)
-    /// Endpoint: GET /orders/{id}
-    /// </summary>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetOrderDetail(long id)
     {
         var customerId = GetCustomerId();
-        var order = await _orderService.GetOrderDetailAsync(id, customerId);
-        
+        if (customerId is null) return Unauthorized();
+
+        var order = await _orderService.GetOrderDetailAsync(id, customerId.Value);
+
         if (order == null)
-        {
             return NotFound(new { message = "Pesanan tidak ditemukan atau bukan milik Anda." });
-        }
-        
+
         return Ok(order);
     }
 
-    private long GetCustomerId()
+    private long? GetCustomerId()
     {
         var claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub")?.Value;
-        return long.TryParse(claimValue, out var id) ? id : 0;
+        return long.TryParse(claimValue, out var id) ? id : null;
     }
 }
