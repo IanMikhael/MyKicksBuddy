@@ -1,0 +1,13 @@
+.git
+.vs
+.vscode
+bin
+obj
+TestResults
+*.user
+*.suo
+Dockerfile*
+docker-compose*
+compose*.yaml
+compose*.yml
+.env
