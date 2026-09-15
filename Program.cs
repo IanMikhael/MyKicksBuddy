@@ -20,6 +20,11 @@ builder.Services.AddScoped<IAddressRepository, AddressRepository>();
 builder.Services.AddSingleton<DistanceService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.Configure<MidtransOptions>(builder.Configuration.GetSection(MidtransOptions.SectionName));
+builder.Services.AddHttpClient<IMidtransSnapClient, MidtransSnapClient>(client =>
+    client.Timeout = TimeSpan.FromSeconds(15));
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 // Cookie authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
