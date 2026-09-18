@@ -89,8 +89,21 @@ public class OrderService : IOrderService
         return await _orderRepository.GetDetailByIdAndCustomerAsync(orderId, customerId);
     }
 
-    public async Task UpdateOrderStatusWithLogAsync(long orderId, string status, long handledBy, string? notes)
+   public async Task UpdateOrderStatusWithLogAsync(long orderId, string status, long handledBy, string? notes)
     {
+        var validStatuses = new[]
+        {
+            "pending_payment", "confirmed", "picked_up", "in_progress",
+            "ready", "delivered", "completed", "cancelled"
+        };
+
+        if (!validStatuses.Contains(status))
+            throw new ArgumentException($"Status '{status}' tidak valid.");
+
+        var order = await _orderRepository.GetByIdAsync(orderId);
+        if (order is null)
+            throw new KeyNotFoundException("Pesanan tidak ditemukan.");
+
         await _orderRepository.UpdateStatusWithLogAsync(orderId, status, handledBy, notes);
     }
 

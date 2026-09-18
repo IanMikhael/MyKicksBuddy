@@ -9,7 +9,8 @@ namespace MyKicksBuddy.Controllers;
 
 [Authorize(Roles = "customer")]
 [Route("addresses")]
-public class AddressesController : Controller
+[ApiController]
+public class AddressesController : ControllerBase
 {
     private readonly IAddressRepository _addressRepository;
     private readonly DistanceService _distanceService;
@@ -24,60 +25,58 @@ public class AddressesController : Controller
     public async Task<IActionResult> Index()
     {
         var userId = GetUserId();
-        var addresses = await _addressRepository.GetByUserIdAsync(userId);
+        if (userId is null) return Unauthorized();
+
+        var addresses = await _addressRepository.GetByUserIdAsync(userId.Value);
         return Ok(addresses);
     }
 
-   [HttpPost]
-public async Task<IActionResult> Create(
-    string label,
-    string fullAddress,
-    string latitude,  // Ubah ke string
-    string longitude, // Ubah ke string
-    bool isDefault = false)
-{
-    // Parse manual menggunakan InvariantCulture agar titik (.) selalu terbaca dengan benar
-    if (!double.TryParse(latitude, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double lat) ||
-        !double.TryParse(longitude, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double lng))
+    [HttpPost]
+    public async Task<IActionResult> Create(
+        string label,
+        string fullAddress,
+        double latitude,
+        double longitude,
+        bool isDefault = false)
     {
-        return BadRequest("Format latitude atau longitude tidak valid.");
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var distanceKm = _distanceService.CalculateDistanceKm(latitude, longitude);
+        var isWithinRadius = _distanceService.IsWithinRadius(distanceKm);
+
+        if (!isWithinRadius)
+            return BadRequest(new { message = $"Alamat berjarak {distanceKm} km dari toko, melebihi batas layanan antar-jemput 5 km." });
+
+        var address = new CustomerAddress
+        {
+            UserId = userId.Value,
+            Label = label,
+            FullAddress = fullAddress,
+            Latitude = latitude,
+            Longitude = longitude,
+            DistanceKm = distanceKm,
+            IsWithinRadius = isWithinRadius,
+            IsDefault = isDefault
+        };
+
+        var newId = await _addressRepository.CreateAsync(address);
+        return Ok(new { message = "Alamat berhasil ditambahkan.", id = newId, distanceKm });
     }
 
-    var userId = GetUserId();
-
-    var distanceKm = _distanceService.CalculateDistanceKm(lat, lng);
-    var isWithinRadius = _distanceService.IsWithinRadius(distanceKm);
-
-    if (!isWithinRadius)
-        return Ok($"Ditolak: jarak {distanceKm} km melebihi 5 km");
-
-    var address = new CustomerAddress
-    {
-        UserId = userId,
-        Label = label,
-        FullAddress = fullAddress,
-        Latitude = lat,   // Gunakan variabel lat hasil parse
-        Longitude = lng,  // Gunakan variabel lng hasil parse
-        DistanceKm = distanceKm,
-        IsWithinRadius = isWithinRadius,
-        IsDefault = isDefault
-    };
-
-    var newId = await _addressRepository.CreateAsync(address);
-    return Ok(new { message = "Alamat berhasil ditambahkan.", id = newId, distanceKm });
-}
-
-    [HttpPost("delete/{id}")]
+    [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(long id)
     {
         var userId = GetUserId();
-        await _addressRepository.DeleteAsync(id, userId);
-        TempData["Success"] = "Alamat berhasil dihapus.";
-        return RedirectToAction(nameof(Index));
+        if (userId is null) return Unauthorized();
+
+        await _addressRepository.DeleteAsync(id, userId.Value);
+        return Ok(new { message = "Alamat berhasil dihapus." });
     }
 
-    private long GetUserId()
+    private long? GetUserId()
     {
-        return long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return long.TryParse(claimValue, out var id) ? id : null;
     }
 }

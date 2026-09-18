@@ -44,6 +44,16 @@ public class AddressRepository : IAddressRepository
 
     public async Task<long> CreateAsync(CustomerAddress address)
     {
+        if (address.IsDefault)
+        {
+            const string resetSql = @"
+                UPDATE customer_addresses 
+                SET is_default = 0 
+                WHERE user_id = @UserId";
+
+            await _db.ExecuteAsync(resetSql, new { UserId = address.UserId });
+        }
+
         const string sql = @"
             INSERT INTO customer_addresses 
                 (user_id, label, full_address, latitude, longitude, 
