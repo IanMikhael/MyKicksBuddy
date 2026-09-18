@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using MyKicksBuddy.Filters;
 using MyKicksBuddy.Models.Dtos;
 using MyKicksBuddy.Services;
 
@@ -6,6 +7,7 @@ namespace MyKicksBuddy.Controllers;
 
 [ApiController]
 [Route("api/chatbot")]
+[ApiKey]
 public class ChatbotController : ControllerBase
 {
     private readonly IOrderService _orderService;
@@ -15,6 +17,7 @@ public class ChatbotController : ControllerBase
         _orderService = orderService;
     }
 
+    // 1. Cek Status Pesanan berdasarkan Order Code
     [HttpGet("orders/{orderCode}")]
     public async Task<IActionResult> GetOrderByCode(string orderCode)
     {
@@ -26,6 +29,7 @@ public class ChatbotController : ControllerBase
         return Ok(order);
     }
 
+    // 2. Daftar Layanan
     [HttpGet("services")]
     public async Task<IActionResult> GetServices()
     {
@@ -33,6 +37,7 @@ public class ChatbotController : ControllerBase
         return Ok(services);
     }
 
+    // 3. Estimasi Harga dan Waktu
     [HttpPost("estimate")]
     public async Task<IActionResult> GetEstimation([FromBody] EstimateRequest request)
     {
@@ -74,6 +79,40 @@ public class ChatbotController : ControllerBase
             EstimatedHours = maxHours,
             EstimatedCompletionText = $"Estimasi selesai sekitar {completionTime:dd MMM yyyy, HH:mm} ({maxHours} jam pengerjaan)",
             Details = details
+        });
+    }
+
+    // 4. Buat Pesanan Baru via Chatbot (Menyelesaikan Task 15)
+    [HttpPost("orders")]
+    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
+    {
+        if (request == null || request.Items == null || !request.Items.Any())
+        {
+            return BadRequest(new { message = "Data pesanan atau item layanan tidak boleh kosong." });
+        }
+
+        // Tentukan ID pelanggan default untuk pesanan via chatbot jika tidak dikirim dari payload
+        long customerId = request.CustomerId > 0 ? request.CustomerId : 2;
+
+        var result = await _orderService.CreateOrderAsync(customerId, request);
+
+        if (!result.Success)
+        {
+            return BadRequest(new { message = result.Error });
+        }
+
+        // Ambil detail ringkas pesanan yang baru dibuat untuk diumpankan kembali ke AI / Response n8n
+        var createdOrder = await _orderService.GetOrderDetailAsync(result.OrderId, customerId);
+
+        return Ok(new 
+        { 
+            message = "Pesanan berhasil dibuat via chatbot!",
+            orderId = result.OrderId,
+            orderCode = createdOrder?.OrderCode,
+            totalAmount = createdOrder?.TotalAmount,
+            status = createdOrder?.Status,
+            paymentStatus = createdOrder?.PaymentStatus,
+            data = request
         });
     }
 }
