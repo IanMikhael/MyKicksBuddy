@@ -1,6 +1,3 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using MyKicksBuddy.Models.Dtos;
 using MyKicksBuddy.Services;
@@ -8,29 +5,37 @@ using MyKicksBuddy.Services;
 namespace MyKicksBuddy.Controllers;
 
 [Route("auth")]
-public class AuthController : Controller
+[ApiController]
+public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IJwtService _jwtService;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, IJwtService jwtService)
     {
         _authService = authService;
+        _jwtService = jwtService;
     }
 
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState); // Ubah dari return View(request) ke JSON
+            return BadRequest(ModelState);
 
         var (success, error, user) = await _authService.RegisterAsync(request);
         if (!success)
-        {
-            return BadRequest(new { message = error }); // Kembalikan pesan error dalam format JSON
-        }
+            return BadRequest(new { message = error });
 
-        await SignInUserAsync(user!.Id, user.FullName, user.Role);
-        return Ok(new { message = "Registrasi berhasil!", userId = user.Id });
+        var token = _jwtService.GenerateToken(user!);
+
+        return Ok(new
+        {
+            message = "Registrasi berhasil!",
+            userId = user!.Id,
+            role = user.Role,
+            token
+        });
     }
 
     [HttpPost("login")]
@@ -41,33 +46,23 @@ public class AuthController : Controller
 
         var (success, error, user) = await _authService.LoginAsync(request);
         if (!success)
-        {
             return BadRequest(new { message = error });
-        }
 
-        await SignInUserAsync(user!.Id, user.FullName, user.Role);
-        return Ok(new { message = "Login berhasil!", role = user.Role });
+        var token = _jwtService.GenerateToken(user!);
+
+        return Ok(new
+        {
+            message = "Login berhasil!",
+            userId = user!.Id,
+            role = user.Role,
+            token
+        });
     }
 
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout()
+    public IActionResult Logout()
     {
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return RedirectToAction("Index", "Home");
-    }
-
-    private async Task SignInUserAsync(long userId, string fullName, string role)
-    {
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, userId.ToString()),
-            new(ClaimTypes.Name, fullName),
-            new(ClaimTypes.Role, role)
-        };
-
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        var principal = new ClaimsPrincipal(identity);
-
-        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+        // JWT stateless, logout cukup hapus token di sisi client
+        return Ok(new { message = "Logout berhasil. Hapus token di sisi client." });
     }
 }
