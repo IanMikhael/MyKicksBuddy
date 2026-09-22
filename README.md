@@ -100,6 +100,15 @@ MyKicksBuddy/
 | PATCH | `/staff/orders/{id}/status` | Kasir, Admin | Update status pesanan |
 | GET | `/staff/orders/{id}/logs` | Kasir, Admin | Timeline log status |
 | GET | `/staff/orders/{id}` | Kasir, Admin | Detail pesanan lengkap |
+| GET | `/staff/orders` | Kasir, Admin | Daftar semua pesanan lintas channel (online & POS), filter opsional `?channel=&status=` |
+
+### POS (Kasir)
+| Method | Endpoint | Akses | Keterangan |
+|--------|----------|-------|------------|
+| POST | `/pos/orders` | Kasir, Admin | Buat transaksi on-the-spot. Pelanggan dicari/dibuat otomatis berdasarkan nomor HP. `paymentMethod`: `cash` (langsung `confirmed`+`paid`) atau `midtrans` |
+| POST | `/pos/orders/{orderId}/payments` | Kasir, Admin | Buat sesi pembayaran Midtrans (QRIS/EDC) untuk transaksi POS dengan `paymentMethod = midtrans` |
+
+> Order POS tersimpan di tabel `orders` yang sama dengan channel `online` (`channel = 'pos'`), sehingga otomatis tersinkron dan terlihat realtime di semua endpoint staff/reporting tanpa proses sync terpisah.
 
 ### Chatbot (API Key)
 | Method | Endpoint | Akses | Keterangan |
@@ -136,7 +145,9 @@ Environment=ChatbotApiKey=isi-api-key-production
 
 ## Catatan Pengembangan
 
-- Auth saat ini menggunakan cookie-based session. Migrasi ke JWT direncanakan pada iterasi berikutnya.
+- Auth menggunakan JWT bearer token (expire 7 hari), dikirim di header `Authorization: Bearer <token>`.
 - Real-time tracking status pesanan menggunakan polling interval 10 detik di sisi frontend.
 - Chatbot menggunakan n8n + Groq LLM dengan System Prompt berbasis business rules toko.
 - Endpoint chatbot tidak mengekspos `customerId`, `notes`, atau detail alamat customer.
+- Order POS (walk-in) otomatis membuat akun `customer` baru (tanpa password yang diketahui) jika nomor HP belum terdaftar, supaya tetap bisa dikaitkan ke `orders.customer_id`. Akun ini bisa "diklaim" lewat fitur reset password di iterasi berikutnya jika pelanggan tersebut ingin login online.
+- Konfigurasi Midtrans (`Midtrans:ServerKey`, `Midtrans:IsProduction`, `Midtrans:ExpiryMinutes`) perlu diisi lewat `dotnet user-secrets` agar endpoint pembayaran (`/orders/{id}/payments`, `/pos/orders/{id}/payments`) berfungsi.

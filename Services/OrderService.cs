@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using MyKicksBuddy.Models.Dtos;
 using MyKicksBuddy.Models.Entities;
 using MyKicksBuddy.Repositories;
@@ -8,11 +9,14 @@ public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IAddressRepository _addressRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly PasswordHasher<User> _passwordHasher = new();
 
-    public OrderService(IOrderRepository orderRepository, IAddressRepository addressRepository)
+    public OrderService(IOrderRepository orderRepository, IAddressRepository addressRepository, IUserRepository userRepository)
     {
         _orderRepository = orderRepository;
         _addressRepository = addressRepository;
+        _userRepository = userRepository;
     }
 
     public async Task<(bool Success, string? Error, long OrderId)> CreateOrderAsync(long customerId, CreateOrderRequest request)
@@ -122,5 +126,65 @@ public class OrderService : IOrderService
     public async Task<IEnumerable<ServiceDto>> GetAllServicesAsync()
     {
         return await _orderRepository.GetAllServicesAsync();
+    }
+
+    // --- Implementasi POS (Kasir) ---
+
+    public async Task<(bool Success, string? Error, long OrderId, long CustomerId)> CreatePosOrderAsync(long staffId, CreatePosOrderRequest request)
+    {
+        var customer = await _userRepository.GetByEmailOrPhoneAsync(request.CustomerPhone);
+        if (customer is null)
+        {
+            customer = new User
+            {
+                Role = "customer",
+                FullName = request.CustomerName,
+                Phone = request.CustomerPhone,
+                IsActive = true
+            };
+            customer.PasswordHash = _passwordHasher.HashPassword(customer, Guid.NewGuid().ToString("N"));
+
+            var newCustomerId = await _userRepository.CreateAsync(customer);
+            customer.Id = newCustomerId;
+        }
+
+        string orderCode = $"MKC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4].ToUpper()}";
+
+        var order = new Order
+        {
+            OrderCode = orderCode,
+            CustomerId = customer.Id,
+            Channel = "pos",
+            FulfillmentType = "drop_off",
+            AddressId = null,
+            DistanceKm = null,
+            Subtotal = 0,
+            Total = 0,
+            Status = "pending_payment",
+            PaymentStatus = "unpaid",
+            HandledBy = staffId,
+            Notes = request.Notes
+        };
+
+        var orderId = await _orderRepository.CreateWithItemsAsync(order, request.Items);
+
+        if (request.PaymentMethod == "cash")
+        {
+            var createdOrder = await _orderRepository.GetByIdAsync(orderId);
+            await _orderRepository.MarkPaidCashAsync(orderId, staffId, createdOrder!.Total);
+        }
+
+        return (true, null, orderId, customer.Id);
+    }
+
+    public async Task<long?> GetCustomerIdForOrderAsync(long orderId)
+    {
+        var order = await _orderRepository.GetByIdAsync(orderId);
+        return order?.CustomerId;
+    }
+
+    public async Task<IEnumerable<StaffOrderListResponse>> GetOrdersForStaffAsync(string? channel, string? status)
+    {
+        return await _orderRepository.GetAllForStaffAsync(channel, status);
     }
 }

@@ -16,4 +16,6 @@ public interface IOrderRepository
     Task<OrderDetailResponse?> GetDetailByIdAsync(long orderId);
     Task<OrderDetailResponse?> GetDetailByCodeAsync(string orderCode);
     Task<IEnumerable<ServiceDto>> GetAllServicesAsync();
+    Task MarkPaidCashAsync(long orderId, long staffId, decimal grossAmount);
+    Task<IEnumerable<StaffOrderListResponse>> GetAllForStaffAsync(string? channel, string? status);
 }

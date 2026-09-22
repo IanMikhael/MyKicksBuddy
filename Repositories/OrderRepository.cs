@@ -209,12 +209,12 @@ public class OrderRepository : IOrderRepository
 
             // 2. Insert ke tabel orders
             const string insertOrderSql = @"
-                INSERT INTO orders 
-                    (order_code, customer_id, channel, fulfillment_type, address_id, 
-                    distance_km, subtotal, total, status, payment_status, notes)
-                VALUES 
-                    (@OrderCode, @CustomerId, @Channel, @FulfillmentType, @AddressId, 
-                    @DistanceKm, @Subtotal, @Total, @Status, @PaymentStatus, @Notes);
+                INSERT INTO orders
+                    (order_code, customer_id, channel, fulfillment_type, address_id,
+                    distance_km, subtotal, total, status, payment_status, handled_by, notes)
+                VALUES
+                    (@OrderCode, @CustomerId, @Channel, @FulfillmentType, @AddressId,
+                    @DistanceKm, @Subtotal, @Total, @Status, @PaymentStatus, @HandledBy, @Notes);
                 SELECT LAST_INSERT_ID();";
 
             long orderId = await _db.ExecuteScalarAsync<long>(insertOrderSql, order, transaction);
@@ -297,12 +297,69 @@ public class OrderRepository : IOrderRepository
     public async Task<IEnumerable<ServiceDto>> GetAllServicesAsync()
     {
         const string sql = @"
-            SELECT id AS Id, name AS Name, price AS Price, 
+            SELECT id AS Id, name AS Name, price AS Price,
                 estimated_hours AS EstimatedHours, is_active AS IsActive
             FROM services
             WHERE is_active = 1
             ORDER BY name ASC;";
 
         return await _db.QueryAsync<ServiceDto>(sql);
+    }
+
+    public async Task MarkPaidCashAsync(long orderId, long staffId, decimal grossAmount)
+    {
+        if (_db.State != ConnectionState.Open) _db.Open();
+        using var transaction = _db.BeginTransaction();
+        try
+        {
+            const string updateOrderSql = @"
+                UPDATE orders
+                SET status = 'confirmed', payment_status = 'paid', handled_by = @HandledBy, updated_at = CURRENT_TIMESTAMP
+                WHERE id = @OrderId;";
+
+            await _db.ExecuteAsync(updateOrderSql, new { OrderId = orderId, HandledBy = staffId }, transaction);
+
+            const string insertLogSql = @"
+                INSERT INTO order_status_log (order_id, status, note, changed_by, created_at)
+                VALUES (@OrderId, 'confirmed', 'Pembayaran cash diterima di kasir.', @HandledBy, CURRENT_TIMESTAMP);";
+
+            await _db.ExecuteAsync(insertLogSql, new { OrderId = orderId, HandledBy = staffId }, transaction);
+
+            const string insertPaymentSql = @"
+                INSERT INTO payments (order_id, provider_order_id, gross_amount, currency, status, payment_type, paid_at)
+                VALUES (@OrderId, @ProviderOrderId, @GrossAmount, 'IDR', 'paid', 'cash', CURRENT_TIMESTAMP);";
+
+            await _db.ExecuteAsync(insertPaymentSql, new
+            {
+                OrderId = orderId,
+                ProviderOrderId = $"CASH-{Guid.NewGuid():N}",
+                GrossAmount = grossAmount
+            }, transaction);
+
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<StaffOrderListResponse>> GetAllForStaffAsync(string? channel, string? status)
+    {
+        const string sql = @"
+            SELECT
+                o.id AS Id, o.order_code AS OrderCode, o.channel AS Channel,
+                u.full_name AS CustomerName, u.phone AS CustomerPhone,
+                o.fulfillment_type AS FulfillmentType, o.total AS TotalAmount,
+                o.status AS Status, o.payment_status AS PaymentStatus,
+                o.handled_by AS HandledBy, o.created_at AS CreatedAt, o.updated_at AS UpdatedAt
+            FROM orders o
+            JOIN users u ON u.id = o.customer_id
+            WHERE (@Channel IS NULL OR o.channel = @Channel)
+              AND (@Status IS NULL OR o.status = @Status)
+            ORDER BY o.created_at DESC;";
+
+        return await _db.QueryAsync<StaffOrderListResponse>(sql, new { Channel = channel, Status = status });
     }
 }

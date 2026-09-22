@@ -65,12 +65,24 @@ public class StaffOrdersController : ControllerBase
     public async Task<IActionResult> GetOrderDetail(long id)
     {
         var order = await _orderService.GetOrderDetailForStaffAsync(id);
-        
+
         if (order == null)
         {
             return NotFound(new { message = "Pesanan tidak ditemukan." });
         }
-        
+
         return Ok(order);
+    }
+
+    /// <summary>
+    /// Melihat daftar semua pesanan lintas channel (online & POS) secara realtime,
+    /// opsional difilter berdasarkan channel dan/atau status (Khusus Staff/Admin)
+    /// Endpoint: GET /staff/orders?channel=pos&amp;status=confirmed
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAllOrders([FromQuery] string? channel, [FromQuery] string? status)
+    {
+        var orders = await _orderService.GetOrdersForStaffAsync(channel, status);
+        return Ok(orders);
     }
 }
