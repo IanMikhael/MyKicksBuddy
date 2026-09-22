@@ -52,6 +52,16 @@ public class ChatbotController : ControllerBase
         return Ok(services);
     }
 
+    [HttpGet("customers/addresses")]
+    public async Task<IActionResult> GetCustomerAddresses([FromQuery] string phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+            return BadRequest(new { message = "Nomor HP wajib diisi." });
+
+        var addresses = await _orderService.GetCustomerAddressesAsync(phone);
+        return Ok(addresses);
+    }
+
     [HttpPost("orders")]
     public async Task<IActionResult> CreateOrder([FromBody] CreateChatbotOrderRequest request)
     {

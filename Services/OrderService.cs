@@ -215,6 +215,24 @@ public class OrderService : IOrderService
         return (false, "Gagal membuat kode pesanan yang unik. Silakan coba lagi.", null, 0);
     }
 
+    public async Task<IReadOnlyList<ChatbotAddressResponse>> GetCustomerAddressesAsync(string phone)
+    {
+        var customer = await _userRepository.GetByEmailOrPhoneAsync(phone);
+        if (customer is null)
+            return Array.Empty<ChatbotAddressResponse>();
+
+        var addresses = await _addressRepository.GetByUserIdAsync(customer.Id);
+        return addresses.Select(a => new ChatbotAddressResponse
+        {
+            Id = a.Id,
+            Label = a.Label,
+            FullAddress = a.FullAddress,
+            DistanceKm = a.DistanceKm,
+            IsWithinRadius = a.IsWithinRadius,
+            IsDefault = a.IsDefault
+        }).ToList();
+    }
+
     // --- Implementasi POS (Kasir) ---
 
     public async Task<(bool Success, string? Error, long OrderId, long CustomerId)> CreatePosOrderAsync(long staffId, CreatePosOrderRequest request)
