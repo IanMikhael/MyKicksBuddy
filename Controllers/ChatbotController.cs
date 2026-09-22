@@ -52,6 +52,25 @@ public class ChatbotController : ControllerBase
         return Ok(services);
     }
 
+    [HttpPost("orders")]
+    public async Task<IActionResult> CreateOrder([FromBody] CreateChatbotOrderRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var result = await _orderService.CreateOrderForChatbotAsync(request);
+        if (!result.Success)
+            return BadRequest(new { message = result.Error });
+
+        // Return hanya informasi yang aman, tanpa customerId/notes/alamat
+        return Ok(new ChatbotCreateOrderResponse
+        {
+            OrderCode = result.OrderCode!,
+            Status = "pending_payment",
+            TotalAmount = result.TotalAmount
+        });
+    }
+
     [HttpPost("estimate")]
     public async Task<IActionResult> GetEstimation([FromBody] EstimateRequest request)
     {

@@ -21,6 +21,7 @@ public interface IOrderService
     // Tambahan untuk Chatbot:
     Task<OrderDetailResponse?> GetOrderByCodeAsync(string orderCode);
     Task<IEnumerable<ServiceDto>> GetAllServicesAsync();
+    Task<(bool Success, string? Error, string? OrderCode, decimal TotalAmount)> CreateOrderForChatbotAsync(CreateChatbotOrderRequest request);
 
     // Tambahan untuk POS (Kasir):
     Task<(bool Success, string? Error, long OrderId, long CustomerId)> CreatePosOrderAsync(long staffId, CreatePosOrderRequest request);

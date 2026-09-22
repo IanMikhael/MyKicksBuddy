@@ -277,7 +277,16 @@ public sealed class PaymentRepository : IPaymentRepository
                     SET status = 'confirmed', updated_at = CURRENT_TIMESTAMP
                     WHERE id = @OrderId AND status = 'pending_payment'";
 
-                await _db.ExecuteAsync(confirmOrderSql, new { payment.OrderId }, transaction);
+                var confirmedRows = await _db.ExecuteAsync(confirmOrderSql, new { payment.OrderId }, transaction);
+
+                if (confirmedRows == 1)
+                {
+                    const string insertLogSql = @"
+                        INSERT INTO order_status_log (order_id, status, note, changed_by, created_at)
+                        VALUES (@OrderId, 'confirmed', 'Pembayaran dikonfirmasi otomatis oleh sistem (Midtrans).', NULL, CURRENT_TIMESTAMP);";
+
+                    await _db.ExecuteAsync(insertLogSql, new { payment.OrderId }, transaction);
+                }
             }
             transaction.Commit();
             return PaymentNotificationUpdateResult.Applied;

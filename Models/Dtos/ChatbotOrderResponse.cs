@@ -17,3 +17,10 @@ public class ChatbotOrderItemResponse
     public int Quantity { get; set; }
     public decimal Subtotal { get; set; }
 }
+
+public class ChatbotCreateOrderResponse
+{
+    public string OrderCode { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public decimal TotalAmount { get; set; }
+}

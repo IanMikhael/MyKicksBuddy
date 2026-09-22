@@ -144,6 +144,77 @@ public class OrderService : IOrderService
         return await _orderRepository.GetAllServicesAsync();
     }
 
+    public async Task<(bool Success, string? Error, string? OrderCode, decimal TotalAmount)> CreateOrderForChatbotAsync(CreateChatbotOrderRequest request)
+    {
+        var customer = await _userRepository.GetByEmailOrPhoneAsync(request.CustomerPhone);
+        if (customer is null)
+        {
+            customer = new User
+            {
+                Role = "customer",
+                FullName = request.CustomerName,
+                Phone = request.CustomerPhone,
+                IsActive = true
+            };
+            customer.PasswordHash = _passwordHasher.HashPassword(customer, Guid.NewGuid().ToString("N"));
+
+            var newCustomerId = await _userRepository.CreateAsync(customer);
+            customer.Id = newCustomerId;
+        }
+
+        decimal? distanceKm = null;
+
+        if (request.FulfillmentType == "pickup_delivery")
+        {
+            if (!request.AddressId.HasValue)
+                return (false, "Alamat penjemputan wajib dipilih untuk layanan antar-jemput.", null, 0);
+
+            var address = await _addressRepository.GetByIdAsync(request.AddressId.Value);
+            if (address is null || address.UserId != customer.Id)
+                return (false, "Alamat tidak ditemukan atau bukan milik pelanggan ini.", null, 0);
+
+            if (!address.IsWithinRadius)
+                return (false, $"Maaf, alamat berada di luar jangkauan (jarak {address.DistanceKm} km dari toko, maksimal 5 km).", null, 0);
+
+            distanceKm = (decimal)address.DistanceKm;
+        }
+
+        var order = new Order
+        {
+            CustomerId = customer.Id,
+            Channel = "online",
+            FulfillmentType = request.FulfillmentType,
+            AddressId = request.FulfillmentType == "pickup_delivery" ? request.AddressId : null,
+            DistanceKm = distanceKm,
+            Subtotal = 0,
+            Total = 0,
+            Status = "pending_payment",
+            PaymentStatus = "unpaid",
+            Notes = request.Notes
+        };
+
+        const int maxAttempts = 3;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            order.OrderCode = GenerateOrderCode();
+            try
+            {
+                await _orderRepository.CreateWithItemsAsync(order, request.Items);
+                return (true, null, order.OrderCode, order.Total);
+            }
+            catch (MySqlException ex) when (ex.Number == 1062 && ex.Message.Contains("order_code") && attempt < maxAttempts)
+            {
+                // Tabrakan kode pesanan (kemungkinan sangat kecil) - coba lagi dengan kode baru.
+            }
+            catch (InvalidOperationException ex)
+            {
+                return (false, ex.Message, null, 0);
+            }
+        }
+
+        return (false, "Gagal membuat kode pesanan yang unik. Silakan coba lagi.", null, 0);
+    }
+
     // --- Implementasi POS (Kasir) ---
 
     public async Task<(bool Success, string? Error, long OrderId, long CustomerId)> CreatePosOrderAsync(long staffId, CreatePosOrderRequest request)
