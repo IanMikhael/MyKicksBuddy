@@ -1,5 +1,6 @@
 using System.Data;
 using Dapper;
+using MySqlConnector;
 using MyKicksBuddy.Models.Entities;
 
 namespace MyKicksBuddy.Repositories;
@@ -76,9 +77,16 @@ public class AddressRepository : IAddressRepository
     public async Task DeleteAsync(long id, long userId)
     {
         const string sql = @"
-            DELETE FROM customer_addresses 
+            DELETE FROM customer_addresses
             WHERE id = @Id AND user_id = @UserId";
 
-        await _db.ExecuteAsync(sql, new { Id = id, UserId = userId });
+        try
+        {
+            await _db.ExecuteAsync(sql, new { Id = id, UserId = userId });
+        }
+        catch (MySqlException ex) when (ex.Number == 1451)
+        {
+            throw new InvalidOperationException("Alamat tidak bisa dihapus karena sudah digunakan pada pesanan.");
+        }
     }
 }

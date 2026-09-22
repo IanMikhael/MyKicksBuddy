@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -17,12 +19,18 @@ public class ApiKeyAttribute : Attribute, IAsyncActionFilter
 
         if (string.IsNullOrWhiteSpace(expectedApiKey))
         {
-            await next();
+            context.Result = new ObjectResult(new
+            {
+                message = "Chatbot API belum dikonfigurasi di server."
+            })
+            {
+                StatusCode = StatusCodes.Status503ServiceUnavailable
+            };
             return;
         }
 
         if (!context.HttpContext.Request.Headers.TryGetValue(ApiKeyHeader, out var providedKey)
-            || providedKey.ToString() != expectedApiKey)
+            || !IsMatch(providedKey.ToString(), expectedApiKey))
         {
             context.Result = new UnauthorizedObjectResult(new
             {
@@ -32,5 +40,14 @@ public class ApiKeyAttribute : Attribute, IAsyncActionFilter
         }
 
         await next();
+    }
+
+    private static bool IsMatch(string provided, string expected)
+    {
+        var providedBytes = Encoding.UTF8.GetBytes(provided);
+        var expectedBytes = Encoding.UTF8.GetBytes(expected);
+
+        return providedBytes.Length == expectedBytes.Length
+            && CryptographicOperations.FixedTimeEquals(providedBytes, expectedBytes);
     }
 }

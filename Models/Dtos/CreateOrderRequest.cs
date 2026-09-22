@@ -10,6 +10,8 @@ public class CreateOrderRequest
     public string FulfillmentType { get; set; } = string.Empty;
 
     public long? AddressId { get; set; }
+
+    [MaxLength(255, ErrorMessage = "Catatan maksimal 255 karakter.")]
     public string? Notes { get; set; }
 
     [Required(ErrorMessage = "Item pesanan tidak boleh kosong.")]

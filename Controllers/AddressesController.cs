@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MyKicksBuddy.Models.Dtos;
 using MyKicksBuddy.Models.Entities;
 using MyKicksBuddy.Repositories;
 using MyKicksBuddy.Services;
@@ -32,17 +33,15 @@ public class AddressesController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(
-        string label,
-        string fullAddress,
-        double latitude,
-        double longitude,
-        bool isDefault = false)
+    public async Task<IActionResult> Create([FromBody] CreateAddressRequest request)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
 
-        var distanceKm = _distanceService.CalculateDistanceKm(latitude, longitude);
+        var distanceKm = _distanceService.CalculateDistanceKm(request.Latitude, request.Longitude);
         var isWithinRadius = _distanceService.IsWithinRadius(distanceKm);
 
         if (!isWithinRadius)
@@ -51,13 +50,13 @@ public class AddressesController : ControllerBase
         var address = new CustomerAddress
         {
             UserId = userId.Value,
-            Label = label,
-            FullAddress = fullAddress,
-            Latitude = latitude,
-            Longitude = longitude,
+            Label = request.Label,
+            FullAddress = request.FullAddress,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
             DistanceKm = distanceKm,
             IsWithinRadius = isWithinRadius,
-            IsDefault = isDefault
+            IsDefault = request.IsDefault
         };
 
         var newId = await _addressRepository.CreateAsync(address);
@@ -70,7 +69,15 @@ public class AddressesController : ControllerBase
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
 
-        await _addressRepository.DeleteAsync(id, userId.Value);
+        try
+        {
+            await _addressRepository.DeleteAsync(id, userId.Value);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+
         return Ok(new { message = "Alamat berhasil dihapus." });
     }
 

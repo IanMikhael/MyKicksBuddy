@@ -20,13 +20,8 @@ public class ChatbotController : ControllerBase
     [HttpGet("orders/{orderCode}")]
     public async Task<IActionResult> GetOrderByCode(string orderCode)
     {
-        var order = await _orderService.GetOrderByCodeAsync(orderCode);
+        var detail = await _orderService.GetOrderByCodeAsync(orderCode);
 
-        if (order == null)
-            return NotFound(new { message = "Maaf, pesanan dengan kode tersebut tidak ditemukan." });
-
-        // Cast ke OrderDetailResponse untuk mapping
-        var detail = order as OrderDetailResponse;
         if (detail == null)
             return NotFound(new { message = "Maaf, pesanan dengan kode tersebut tidak ditemukan." });
 
@@ -90,7 +85,7 @@ public class ChatbotController : ControllerBase
             });
         }
 
-        var completionTime = DateTime.Now.AddHours(maxHours);
+        var completionTime = DateTime.UtcNow.AddHours(maxHours);
 
         return Ok(new EstimateResponse
         {

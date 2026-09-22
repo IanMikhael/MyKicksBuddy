@@ -19,7 +19,7 @@ public interface IOrderService
     Task<OrderDetailResponse?> GetOrderDetailForStaffAsync(long orderId);
 
     // Tambahan untuk Chatbot:
-    Task<object?> GetOrderByCodeAsync(string orderCode);
+    Task<OrderDetailResponse?> GetOrderByCodeAsync(string orderCode);
     Task<IEnumerable<ServiceDto>> GetAllServicesAsync();
 
     // Tambahan untuk POS (Kasir):

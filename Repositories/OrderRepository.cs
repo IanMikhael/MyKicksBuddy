@@ -114,6 +114,7 @@ public class OrderRepository : IOrderRepository
                 o.payment_status AS PaymentStatus, o.notes AS Notes, o.created_at AS CreatedAt,
                 oi.service_id AS ServiceId, s.name AS ServiceName,
                 oi.qty AS Quantity, oi.price AS Price, oi.subtotal AS Subtotal,
+                oi.shoe_description AS ShoeDescription,
                 oi.id AS Id
             FROM orders o
             LEFT JOIN order_items oi ON o.id = oi.order_id
@@ -192,16 +193,21 @@ public class OrderRepository : IOrderRepository
         try
         {
             decimal calculatedSubtotal = 0;
+            var resolvedItems = new List<(OrderItemRequest Item, decimal Price)>();
 
-            // 1. Hitung total harga berdasarkan harga asli dari tabel services
+            // 1. Validasi tiap service aktif & hitung total harga berdasarkan harga asli dari tabel services
             foreach (var item in items)
             {
-                var servicePrice = await _db.QueryFirstOrDefaultAsync<decimal>(
-                    "SELECT price FROM services WHERE id = @ServiceId", 
-                    new { item.ServiceId }, 
+                var servicePrice = await _db.QueryFirstOrDefaultAsync<decimal?>(
+                    "SELECT price FROM services WHERE id = @ServiceId AND is_active = 1",
+                    new { item.ServiceId },
                     transaction);
 
-                calculatedSubtotal += servicePrice * item.Quantity;
+                if (servicePrice is null)
+                    throw new InvalidOperationException($"Layanan dengan ID {item.ServiceId} tidak ditemukan atau sedang tidak aktif.");
+
+                calculatedSubtotal += servicePrice.Value * item.Quantity;
+                resolvedItems.Add((item, servicePrice.Value));
             }
 
             order.Subtotal = calculatedSubtotal;
@@ -219,15 +225,10 @@ public class OrderRepository : IOrderRepository
 
             long orderId = await _db.ExecuteScalarAsync<long>(insertOrderSql, order, transaction);
 
-            // 3. Insert setiap item ke tabel order_items
-            foreach (var item in items)
+            // 3. Insert setiap item ke tabel order_items (harga sudah diambil sekali di langkah 1)
+            foreach (var (item, price) in resolvedItems)
             {
-                var servicePrice = await _db.QueryFirstOrDefaultAsync<decimal>(
-                    "SELECT price FROM services WHERE id = @ServiceId", 
-                    new { item.ServiceId }, 
-                    transaction);
-
-                decimal itemSubtotal = servicePrice * item.Quantity;
+                decimal itemSubtotal = price * item.Quantity;
 
                 const string insertItemSql = @"
                     INSERT INTO order_items (order_id, service_id, shoe_description, qty, price, subtotal)
@@ -238,7 +239,7 @@ public class OrderRepository : IOrderRepository
                     ServiceId = item.ServiceId,
                     ShoeDescription = item.ShoeDescription,
                     Qty = item.Quantity,
-                    Price = servicePrice,
+                    Price = price,
                     Subtotal = itemSubtotal
                 }, transaction);
             }

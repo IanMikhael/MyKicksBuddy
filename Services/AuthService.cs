@@ -20,10 +20,11 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.Phone))
             return (false, "Email atau nomor telepon wajib diisi.", null);
 
-        var identifier = string.IsNullOrWhiteSpace(request.Email) ? request.Phone! : request.Email;
-        var existing = await _userRepository.GetByEmailOrPhoneAsync(identifier);
-        if (existing is not null)
-            return (false, "Email atau nomor telepon sudah terdaftar.", null);
+        if (!string.IsNullOrWhiteSpace(request.Email) && await _userRepository.GetByEmailOrPhoneAsync(request.Email) is not null)
+            return (false, "Email sudah terdaftar.", null);
+
+        if (!string.IsNullOrWhiteSpace(request.Phone) && await _userRepository.GetByEmailOrPhoneAsync(request.Phone) is not null)
+            return (false, "Nomor telepon sudah terdaftar.", null);
 
         var user = new User
         {

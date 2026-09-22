@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using MySqlConnector;
 using MyKicksBuddy.Models.Dtos;
 using MyKicksBuddy.Models.Entities;
 using MyKicksBuddy.Repositories;
@@ -38,11 +39,8 @@ public class OrderService : IOrderService
             distanceKm = (decimal)address.DistanceKm; 
         }
 
-        string orderCode = $"MKC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4].ToUpper()}";
-
         var order = new Order
         {
-            OrderCode = orderCode,
             CustomerId = customerId,
             Channel = "online",
             FulfillmentType = request.FulfillmentType,
@@ -55,10 +53,30 @@ public class OrderService : IOrderService
             Notes = request.Notes
         };
 
-        var orderId = await _orderRepository.CreateWithItemsAsync(order, request.Items);
-        
-        return (true, null, orderId);
+        const int maxAttempts = 3;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            order.OrderCode = GenerateOrderCode();
+            try
+            {
+                var orderId = await _orderRepository.CreateWithItemsAsync(order, request.Items);
+                return (true, null, orderId);
+            }
+            catch (MySqlException ex) when (ex.Number == 1062 && ex.Message.Contains("order_code") && attempt < maxAttempts)
+            {
+                // Tabrakan kode pesanan (kemungkinan sangat kecil) - coba lagi dengan kode baru.
+            }
+            catch (InvalidOperationException ex)
+            {
+                return (false, ex.Message, 0);
+            }
+        }
+
+        return (false, "Gagal membuat kode pesanan yang unik. Silakan coba lagi.", 0);
     }
+
+    private static string GenerateOrderCode() =>
+        $"MKC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..7].ToUpper()}";
 
     public async Task<(bool Success, string? Error)> UpdateStatusAsync(long orderId, string status, long staffId, string? notes)
     {
@@ -95,18 +113,16 @@ public class OrderService : IOrderService
 
    public async Task UpdateOrderStatusWithLogAsync(long orderId, string status, long handledBy, string? notes)
     {
-        var validStatuses = new[]
-        {
-            "pending_payment", "confirmed", "picked_up", "in_progress",
-            "ready", "delivered", "completed", "cancelled"
-        };
-
-        if (!validStatuses.Contains(status))
+        if (!OrderStatusWorkflow.IsKnownStatus(status))
             throw new ArgumentException($"Status '{status}' tidak valid.");
 
         var order = await _orderRepository.GetByIdAsync(orderId);
         if (order is null)
             throw new KeyNotFoundException("Pesanan tidak ditemukan.");
+
+        if (!OrderStatusWorkflow.CanTransition(order.Status, order.PaymentStatus, status))
+            throw new InvalidOperationException(
+                $"Tidak bisa mengubah status dari '{order.Status}' ke '{status}' (payment_status: {order.PaymentStatus}).");
 
         await _orderRepository.UpdateStatusWithLogAsync(orderId, status, handledBy, notes);
     }
@@ -118,7 +134,7 @@ public class OrderService : IOrderService
 
     // --- Implementasi Chatbot (Mengambil langsung dari Database) ---
 
-    public async Task<object?> GetOrderByCodeAsync(string orderCode)
+    public async Task<OrderDetailResponse?> GetOrderByCodeAsync(string orderCode)
     {
         return await _orderRepository.GetDetailByCodeAsync(orderCode);
     }
