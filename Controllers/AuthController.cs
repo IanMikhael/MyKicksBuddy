@@ -13,11 +13,13 @@ namespace MyKicksBuddy.Controllers;
 public class AuthController : Controller
 {
     private readonly IAuthService _authService;
+    private readonly IJwtService _jwtService;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService, ILogger<AuthController> logger)
+    public AuthController(IAuthService authService, IJwtService jwtService, ILogger<AuthController> logger)
     {
         _authService = authService;
+        _jwtService = jwtService;
         _logger = logger;
     }
 
@@ -58,7 +60,7 @@ public class AuthController : Controller
         }
 
         await SignInUserAsync(user!.Id, user.FullName, user.Role);
-        return Ok(new { message = "Registrasi berhasil!", userId = user.Id });
+        return Ok(new { message = "Registrasi berhasil!", userId = user.Id, role = user.Role, token = _jwtService.GenerateToken(user) });
     }
 
     [HttpPost("login")]
@@ -95,7 +97,7 @@ public class AuthController : Controller
             return BadRequest(new { message = "Akun ini tidak memiliki akses Admin." });
 
         await SignInUserAsync(user!.Id, user.FullName, user.Role);
-        return Ok(new { message = "Login berhasil!", role = user.Role });
+        return Ok(new { message = "Login berhasil!", userId = user.Id, role = user.Role, token = _jwtService.GenerateToken(user) });
     }
 
     [HttpPost("logout")]

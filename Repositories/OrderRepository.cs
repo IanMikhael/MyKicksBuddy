@@ -228,10 +228,10 @@ public class OrderRepository : IOrderRepository
             const string insertOrderSql = @"
                 INSERT INTO orders 
                     (order_code, customer_id, channel, fulfillment_type, address_id, 
-                    distance_km, subtotal, total, status, payment_status, notes)
+                    distance_km, subtotal, total, status, payment_status, handled_by, notes)
                 VALUES 
                     (@OrderCode, @CustomerId, @Channel, @FulfillmentType, @AddressId, 
-                    @DistanceKm, @Subtotal, @Total, @Status, @PaymentStatus, @Notes);
+                    @DistanceKm, @Subtotal, @Total, @Status, @PaymentStatus, @HandledBy, @Notes);
                 SELECT LAST_INSERT_ID();";
 
             long orderId = await _db.ExecuteScalarAsync<long>(insertOrderSql, order, transaction);
@@ -362,5 +362,94 @@ public class OrderRepository : IOrderRepository
                 COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN total ELSE 0 END), 0) AS PaidRevenue
             FROM orders;";
         return await _db.QuerySingleAsync<DashboardSummary>(sql);
+    }
+
+    public async Task<OrderDetailResponse?> GetDetailByCodeAsync(string orderCode)
+    {
+        const string sql = @"
+            SELECT o.id AS Id, o.order_code AS OrderCode, o.customer_id AS CustomerId,
+                   o.channel AS Channel, o.fulfillment_type AS FulfillmentType,
+                   o.subtotal AS Subtotal, o.total AS TotalAmount, o.status AS Status,
+                   o.payment_status AS PaymentStatus, o.notes AS Notes, o.distance_km AS DistanceKm,
+                   u.full_name AS CustomerName, u.email AS CustomerEmail, u.phone AS CustomerPhone,
+                   a.label AS AddressLabel, a.full_address AS FullAddress, o.created_at AS CreatedAt,
+                   oi.id AS ItemId, oi.service_id AS ServiceId, s.name AS ServiceName,
+                   oi.qty AS Quantity, oi.price AS Price, oi.subtotal AS Subtotal,
+                   oi.shoe_description AS ShoeDescription
+            FROM orders o
+            INNER JOIN users u ON u.id = o.customer_id
+            LEFT JOIN customer_addresses a ON a.id = o.address_id
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            LEFT JOIN services s ON oi.service_id = s.id
+            WHERE o.order_code = @OrderCode;";
+
+        OrderDetailResponse? orderResponse = null;
+        await _db.QueryAsync<OrderDetailResponse, OrderItemDto, OrderDetailResponse>(
+            sql,
+            (order, item) =>
+            {
+                orderResponse ??= order;
+                orderResponse.Items ??= new List<OrderItemDto>();
+                if (item?.ItemId > 0) orderResponse.Items.Add(item);
+                return orderResponse;
+            },
+            new { OrderCode = orderCode },
+            splitOn: "ItemId");
+        return orderResponse;
+    }
+
+    public async Task<IEnumerable<ServiceDto>> GetAllServicesAsync()
+    {
+        const string sql = @"
+            SELECT id AS Id, name AS Name, price AS Price,
+                   estimated_hours AS EstimatedHours, is_active AS IsActive
+            FROM services WHERE is_active = 1 ORDER BY name ASC;";
+        return await _db.QueryAsync<ServiceDto>(sql);
+    }
+
+    public async Task MarkPaidCashAsync(long orderId, long staffId, decimal grossAmount)
+    {
+        if (_db.State != ConnectionState.Open) _db.Open();
+        using var transaction = _db.BeginTransaction();
+        try
+        {
+            const string updateOrderSql = @"
+                UPDATE orders
+                SET status = 'waiting_approval', payment_status = 'paid', handled_by = @HandledBy, updated_at = CURRENT_TIMESTAMP
+                WHERE id = @OrderId AND status = 'pending_payment' AND payment_status = 'unpaid';";
+            if (await _db.ExecuteAsync(updateOrderSql, new { OrderId = orderId, HandledBy = staffId }, transaction) != 1)
+                throw new InvalidOperationException("Pesanan tidak lagi menunggu pembayaran.");
+
+            await _db.ExecuteAsync(@"
+                INSERT INTO order_status_log (order_id, status, note, changed_by, created_at)
+                VALUES (@OrderId, 'waiting_approval', 'Pembayaran cash diterima di kasir.', @HandledBy, CURRENT_TIMESTAMP);",
+                new { OrderId = orderId, HandledBy = staffId }, transaction);
+
+            await _db.ExecuteAsync(@"
+                INSERT INTO payments (order_id, provider_order_id, gross_amount, currency, status, payment_type, paid_at)
+                VALUES (@OrderId, @ProviderOrderId, @GrossAmount, 'IDR', 'paid', 'cash', CURRENT_TIMESTAMP);",
+                new { OrderId = orderId, ProviderOrderId = $"CASH-{Guid.NewGuid():N}", GrossAmount = grossAmount }, transaction);
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<StaffOrderListResponse>> GetAllForStaffAsync(string? channel, string? status)
+    {
+        const string sql = @"
+            SELECT o.id AS Id, o.order_code AS OrderCode, o.channel AS Channel,
+                   u.full_name AS CustomerName, u.phone AS CustomerPhone,
+                   o.fulfillment_type AS FulfillmentType, o.total AS TotalAmount,
+                   o.status AS Status, o.payment_status AS PaymentStatus,
+                   o.handled_by AS HandledBy, o.created_at AS CreatedAt, o.updated_at AS UpdatedAt
+            FROM orders o JOIN users u ON u.id = o.customer_id
+            WHERE (@Channel IS NULL OR o.channel = @Channel)
+              AND (@Status IS NULL OR o.status = @Status)
+            ORDER BY o.created_at DESC;";
+        return await _db.QueryAsync<StaffOrderListResponse>(sql, new { Channel = channel, Status = status });
     }
 }

@@ -18,12 +18,10 @@ public class StaffOrdersController : ControllerBase
         _orderService = orderService;
     }
 
-    private long GetStaffId()
+    private long? GetStaffId()
     {
         var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
-        if (claim == null || !long.TryParse(claim.Value, out var id))
-            throw new UnauthorizedAccessException("Identitas petugas tidak valid.");
-        return id;
+        return claim != null && long.TryParse(claim.Value, out var id) ? id : null;
     }
 
     /// <summary>
@@ -33,14 +31,15 @@ public class StaffOrdersController : ControllerBase
     [HttpPatch("{id}/status")]
     public async Task<IActionResult> UpdateOrderStatus(long id, [FromBody] UpdateOrderStatusRequest request)
     {
+        var staffId = GetStaffId();
+        if (staffId is null) return Unauthorized();
+
         try
         {
-            var staffId = GetStaffId();
             var staffRole = User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
-            var result = await _orderService.UpdateStatusAsync(id, request.Status, staffId, staffRole, request.Notes);
+            var result = await _orderService.UpdateStatusAsync(id, request.Status, staffId.Value, staffRole, request.Notes);
             if (!result.Success)
                 return BadRequest(new { message = result.Error });
-
             return Ok(new { message = "Status pesanan berhasil diperbarui dan dicatat dalam log." });
         }
         catch (Exception ex)
@@ -68,12 +67,24 @@ public class StaffOrdersController : ControllerBase
     public async Task<IActionResult> GetOrderDetail(long id)
     {
         var order = await _orderService.GetOrderDetailForStaffAsync(id);
-        
+
         if (order == null)
         {
             return NotFound(new { message = "Pesanan tidak ditemukan." });
         }
-        
+
         return Ok(order);
+    }
+
+    /// <summary>
+    /// Melihat daftar semua pesanan lintas channel (online & POS) secara realtime,
+    /// opsional difilter berdasarkan channel dan/atau status (Khusus Staff/Admin)
+    /// Endpoint: GET /staff/orders?channel=pos&amp;status=confirmed
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAllOrders([FromQuery] string? channel, [FromQuery] string? status)
+    {
+        var orders = await _orderService.GetOrdersForStaffAsync(channel, status);
+        return Ok(orders);
     }
 }

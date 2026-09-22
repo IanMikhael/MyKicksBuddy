@@ -90,6 +90,16 @@ public class OrdersController : Controller
             : Ok(order);
     }
 
+    [HttpPost]
+    public async Task<IActionResult> CreateApi([FromBody] CreateOrderRequest request)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+        var result = await _orderService.CreateOrderAsync(GetCustomerId(), request);
+        return result.Success
+            ? Ok(new { message = "Pesanan berhasil dibuat!", orderId = result.OrderId })
+            : BadRequest(new { message = result.Error });
+    }
+
     [HttpGet("{id:long}/detail")]
     public async Task<IActionResult> Detail(long id)
     {
