@@ -1,6 +1,7 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyKicksBuddy.Services;
-using MyKicksBuddy.Models.Dtos;
 
 namespace MyKicksBuddy.Controllers;
 
@@ -17,9 +18,11 @@ public class ChatbotController : ControllerBase
 
     // 1. Cek Status Pesanan berdasarkan Order Code
     [HttpGet("orders/{orderCode}")]
+    [Authorize(Roles = "customer")]
     public async Task<IActionResult> GetOrderByCode(string orderCode)
     {
-        var order = await _orderService.GetOrderByCodeAsync(orderCode);
+        var customerId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var order = await _orderService.GetOrderByCodeAsync(orderCode, customerId);
         
         if (order == null)
         {
@@ -37,30 +40,4 @@ public class ChatbotController : ControllerBase
         return Ok(services);
     }
 
-    // 3. Buat Pesanan Baru (POST)
-    [HttpPost("orders")]
-    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
-    {
-        if (request == null)
-        {
-            return BadRequest(new { message = "Data pesanan tidak valid." });
-        }
-
-        // Ubah dari ID 1 menjadi ID 2 (Budi Santoso) yang sudah ada di database[cite: 2]
-        long defaultCustomerId = 2; 
-
-        var result = await _orderService.CreateOrderAsync(defaultCustomerId, request);
-
-        if (!result.Success)
-        {
-            return BadRequest(new { message = result.Error });
-        }
-
-        return Ok(new 
-        { 
-            message = "Pesanan berhasil dibuat!",
-            orderId = result.OrderId,
-            data = request
-        });
-    }
 }

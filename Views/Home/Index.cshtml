@@ -1,8 +1,138 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
-}
+@model IReadOnlyList<MyKicksBuddy.Models.Dtos.ServiceOptionDto>
+@using System.Globalization
+@{ ViewData["Title"] = "Perawatan Sepatumu Lebih Mudah Dipantau"; }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="hero-section" id="top">
+    <div class="container mkb-container hero-layout">
+        <div class="hero-copy">
+            <p class="eyebrow" data-hero-reveal style="--reveal-delay: 0ms">SEPATU BERSIH, LANGKAH LEBIH PERCAYA DIRI</p>
+            <h1 data-hero-reveal style="--reveal-delay: 80ms">Perawatan Sepatumu<br /><em>Lebih Mudah Dipantau</em></h1>
+            <p class="hero-description" data-hero-reveal style="--reveal-delay: 160ms">Pesan layanan cuci sepatu secara online, lakukan pembayaran digital, dan pantau proses pesanan melalui MyKicksBuddy.</p>
+            <a class="mkb-button" asp-controller="Orders" asp-action="Create" data-hero-reveal style="--reveal-delay: 240ms">Pesan Sekarang</a>
+        </div>
+
+        <figure class="hero-product" aria-label="Sepasang sepatu putih setelah perawatan" data-hero-reveal data-pointer-parallax style="--reveal-delay: 320ms">
+            <figcaption class="product-note">Lebih bersih<br />Lebih awet<br />Selalu siap<br />melangkah</figcaption>
+            <img class="hero-shoe hero-shoe-side" src="~/images/landing/hero-shoe-side.png" alt="" />
+            <img class="hero-shoe hero-shoe-front" src="~/images/landing/hero-shoe-front.png" alt="" />
+        </figure>
+    </div>
+</section>
+
+<section class="section services-section" id="layanan">
+    <div class="container mkb-container">
+        <header class="services-heading" data-reveal="soft">
+            <div>
+                <p class="eyebrow">LAYANAN KAMI</p>
+                <h2>Perawatan Lengkap<br />untuk Setiap Langkah</h2>
+            </div>
+            <p>Dari pembersihan rutin hingga perawatan khusus, sepatumu ditangani oleh tim profesional dengan produk terbaik.</p>
+        </header>
+
+        @{ var serviceImages = new[] { "service-white-shoe.png", "service-cleaning.png", "service-detailing.png" }; }
+        <div class="service-grid">
+            @for (var index = 0; index < 3; index++)
+            {
+                var service = index < Model.Count ? Model[index] : null;
+                <article class="service-card" data-reveal="card" style="--reveal-delay: @(index * 80)ms">
+                    <div class="service-image"><img src="~/images/landing/@serviceImages[index]" alt="@(service is null ? "Visual layanan perawatan sepatu" : $"Visual layanan {service.Name}")" /></div>
+                    <div class="service-content">
+                        <h3>@(service?.Name ?? "[Nama Layanan]")</h3>
+                        <p>@(service is null || string.IsNullOrWhiteSpace(service.Description) ? "[Deskripsi layanan]" : service.Description)</p>
+                        @if (service is null)
+                        {
+                            <strong>[Harga]</strong>
+                        }
+                        else
+                        {
+                            <strong>@service.Price.ToString("C0", CultureInfo.GetCultureInfo("id-ID"))</strong>
+                        }
+                    </div>
+                </article>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="section workflow-section" id="cara-kerja">
+    <div class="container mkb-container">
+        <header class="section-heading" data-reveal="soft">
+            <p class="eyebrow">CARA KERJA</p>
+            <h2>4 Langkah Mudah</h2>
+        </header>
+        <ol class="workflow-list">
+            <li style="--step-delay: 180ms">
+                <div class="workflow-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 3h12v18H6zM9 7h6M9 11h6M9 15h4"/></svg></div>
+                <span>1</span><h3>Pilih layanan</h3><p>Pilih jenis perawatan sesuai kebutuhanmu.</p>
+            </li>
+            <li style="--step-delay: 280ms">
+                <div class="workflow-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 4h2l2.3 11h10.8l2-7H7M9 20h.01M18 20h.01"/></svg></div>
+                <span>2</span><h3>Buat pesanan</h3><p>Isi detail sepatu dan alamat antar-jemput.</p>
+            </li>
+            <li style="--step-delay: 380ms">
+                <div class="workflow-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 15h3"/></svg></div>
+                <span>3</span><h3>Lakukan pembayaran</h3><p>Bayar secara digital dengan aman dan mudah.</p>
+            </li>
+            <li style="--step-delay: 480ms">
+                <div class="workflow-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m12 3 8 4-8 4-8-4 8-4Zm-8 4v10l8 4 8-4V7M12 11v10"/></svg></div>
+                <span>4</span><h3>Pantau status pesanan</h3><p>Lihat progres pengerjaan secara real-time.</p>
+            </li>
+        </ol>
+    </div>
+</section>
+
+<section class="section pickup-section">
+    <div class="container mkb-container pickup-layout">
+        <div class="pickup-copy" data-reveal="side">
+            <p class="eyebrow">ANTAR-JEMPUT</p>
+            <h2>Kami Jemput,<br />Kami Antar Kembali</h2>
+            <p>Nikmati layanan antar-jemput sepatu dalam radius 5 km dari lokasi kami.</p>
+            <ul class="pickup-benefits">
+                <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm11 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg><span>Antar-jemput<br />oleh tim kami</span></li>
+                <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12Z"/><circle cx="12" cy="9" r="2"/></svg><span>Radius layanan<br />5 km</span></li>
+                <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m12 3 7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg><span>Sepatumu aman<br />di tangan kami</span></li>
+            </ul>
+        </div>
+
+        <figure class="radius-visual" aria-label="Ilustrasi radius layanan lima kilometer" data-reveal="map">
+            <span class="radius-ring radius-ring-one"></span>
+            <span class="radius-ring radius-ring-two"></span>
+            <span class="radius-ring radius-ring-three"></span>
+            <span class="radius-boundary"></span>
+            <div class="radius-center">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4"/></svg>
+                <strong>5 km</strong>
+                <span>Radius layanan</span>
+            </div>
+        </figure>
+    </div>
+</section>
+
+<section class="section status-section" id="status-pesanan">
+    <div class="container mkb-container status-layout">
+        <header class="status-copy" data-reveal="side">
+            <p class="eyebrow">STATUS PESANAN</p>
+            <h2>Pantau Setiap Prosesnya</h2>
+            <p>Dari penjemputan hingga sepatu kembali ke tanganmu, semua bisa dipantau secara real-time di MyKicksBuddy.</p>
+        </header>
+
+        <div class="status-tracker" aria-label="Contoh visual tahapan status pesanan" data-status-motion>
+            <ol>
+                <li class="is-active"><span></span><strong>[Status Tahap 01]</strong></li>
+                <li><span></span><strong>[Status Tahap 02]</strong></li>
+                <li><span></span><strong>[Status Tahap 03]</strong></li>
+            </ol>
+        </div>
+    </div>
+</section>
+
+<section class="final-cta" id="pesan">
+    <div class="container mkb-container final-cta-inner">
+        <div class="cta-product" data-scroll-parallax><img src="~/images/landing/hero-shoe-side.png" alt="" /></div>
+        <div class="cta-copy" data-reveal="soft">
+            <h2>Saatnya Sepatumu Kembali Prima</h2>
+            <p>Percayakan perawatan sepatumu pada MyKicksBuddy.<br />Pesan sekarang dan rasakan bedanya.</p>
+            <a class="mkb-button" asp-controller="Orders" asp-action="Create">Pesan Sekarang</a>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,29 @@
+@model MyKicksBuddy.Models.Dtos.StaffDashboardPageViewModel
+@using MyKicksBuddy.Services
+@using System.Globalization
+@{
+    Layout = "_StaffLayout";
+    ViewData["Title"] = "Dashboard Operasional";
+    ViewData["StaffSection"] = "dashboard";
+    var culture = CultureInfo.GetCultureInfo("id-ID");
+}
+<section class="staff-hero staff-card">
+    <div><h1>Halo, @User.Identity?.Name</h1><p>Ringkasan operasional harian dan status pemrosesan pesanan sepatu pelanggan.</p></div>
+    <div class="staff-hero-actions"><a class="staff-btn staff-btn-neutral" asp-action="Pos">Buka POS / Transaksi</a><a class="staff-btn staff-btn-primary" asp-action="Orders">Lihat Antrean Pesanan →</a></div>
+</section>
+<div class="staff-stats">
+    <div class="staff-stat staff-card"><span>ANTREAN MASUK</span><strong>@Model.Counts.Incoming</strong><small>Menunggu persetujuan / disetujui</small></div>
+    <div class="staff-stat staff-card is-danger"><span>PERLU TINDAKAN</span><strong>@Model.Counts.NeedsAction</strong><small>Status operasional dibayar</small></div>
+    <div class="staff-stat staff-card"><span>PENJEMPUTAN</span><strong>@Model.Counts.Pickup</strong><small>Menunggu penjemputan</small></div>
+    <div class="staff-stat staff-card"><span>PEMBAYARAN TERVERIFIKASI</span><strong>@Model.Counts.Paid</strong><small>Dari status pembayaran tersimpan</small></div>
+</div>
+<div class="staff-dashboard-grid">
+    <section class="staff-card"><div class="staff-section-head"><h2>Pesanan Memerlukan Perhatian Cepat</h2><a class="staff-link" asp-action="Orders">Semua pesanan →</a></div>
+        @if (!Model.Attention.Any()) { <div class="staff-empty"><span class="staff-empty-icon"><img src="~/images/staff/figma/orders.svg" alt="" /></span><h2>Belum ada pesanan</h2><p>Antrean akan muncul ketika pelanggan membuat pesanan. Pesanan belum dibayar tidak dapat dilanjutkan secara operasional.</p></div> }
+        else { @foreach (var order in Model.Attention) { <article class="staff-dashboard-order"><img class="staff-order-illustration" src="~/images/landing/service-white-shoe.png" alt="Ilustrasi sepatu" /><div class="staff-order-main"><strong>@order.OrderCode</strong><b>@order.CustomerName</b><small>@(order.ServiceName ?? "Layanan perawatan") · @order.CreatedAt.ToString("dd MMM, HH:mm", culture)</small><br /><span class="staff-badge">@OrderStatusWorkflow.DisplayLabel(order.Status, order.PaymentStatus)</span></div><div class="staff-dashboard-order-actions"><a class="staff-btn staff-btn-neutral" asp-action="Detail" asp-route-id="@order.Id">Detail Pesanan</a>@if (OrderStatusWorkflow.OperatorNextStatuses(order.Status, order.PaymentStatus).Any()) { <a class="staff-btn staff-btn-primary" asp-action="Detail" asp-route-id="@order.Id">Update Status</a> }</div></article> } }
+    </section>
+    <aside class="staff-dashboard-aside">
+        <section class="staff-card"><div class="staff-section-head"><h2>Ringkasan Penjemputan</h2><a class="staff-link" asp-action="Pickups">Kelola</a></div><div class="staff-aside-list">@if (!Model.Pickups.Any()) { <p class="staff-aside-empty">Belum ada pesanan yang menunggu penjemputan.</p> } else { @foreach (var order in Model.Pickups) { <div class="staff-aside-item"><strong>@order.CustomerName</strong><small>@order.OrderCode · @(order.FullAddress ?? "Alamat belum tersedia")</small></div> } }</div></section>
+        <section class="staff-card"><div class="staff-section-head"><h2>Aktivitas Pembayaran Terakhir</h2><a class="staff-link" asp-action="Payments">Lihat</a></div><div class="staff-aside-list">@if (!Model.RecentPayments.Any()) { <p class="staff-aside-empty">Belum ada transaksi pembayaran.</p> } else { @foreach (var payment in Model.RecentPayments) { <div class="staff-aside-item"><strong>@payment.OrderCode · @payment.TotalAmount.ToString("C0", culture)</strong><small>@StaffPaymentPresentation.Label(payment.PaymentStatus, payment.Provider is not null)</small></div> } }</div></section>
+    </aside>
+</div>

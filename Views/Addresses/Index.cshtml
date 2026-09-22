@@ -1,0 +1,80 @@
+@model IReadOnlyList<MyKicksBuddy.Models.Entities.CustomerAddress>
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Alamat Saya";
+}
+
+<div class="customer-container customer-workspace">
+    <header class="workspace-heading">
+        <div>
+            <a class="workspace-back" asp-controller="Customer" asp-action="Index">← Kembali ke beranda</a>
+            <p class="workspace-eyebrow">PENGATURAN PENGIRIMAN</p>
+            <h1>Alamat Saya</h1>
+            <p>Alamat di luar radius 5 km tetap dapat disimpan, tetapi hanya dapat digunakan sebagai referensi untuk drop off.</p>
+        </div>
+        <a class="workspace-primary-action" asp-action="Create">Tambah alamat</a>
+    </header>
+
+    @if (TempData["Success"] is string success)
+    {
+        <div class="workspace-alert is-success" role="status">@success</div>
+    }
+
+    @if (Model.Count == 0)
+    {
+        <section class="workspace-empty">
+            <span aria-hidden="true">⌖</span>
+            <h2>Belum ada alamat tersimpan</h2>
+            <p>Tambahkan alamat jika ingin memakai layanan antar-jemput.</p>
+            <a class="workspace-primary-action" asp-action="Create">Tambah alamat pertama</a>
+        </section>
+    }
+    else
+    {
+        <section class="address-grid" aria-label="Daftar alamat">
+            @foreach (var address in Model)
+            {
+                <article class="address-card @(address.IsDefault ? "is-default" : null)">
+                    <div class="address-card-heading">
+                        <div>
+                            <h2>@address.Label</h2>
+                            @if (address.IsDefault)
+                            {
+                                <span class="address-default-badge">Alamat utama</span>
+                            }
+                        </div>
+                        <span class="radius-badge @(address.IsWithinRadius ? "is-covered" : "is-outside")">
+                            @(address.IsWithinRadius ? "Dalam jangkauan" : "Di luar 5 km")
+                        </span>
+                    </div>
+                    <p class="address-copy">@address.FullAddress</p>
+                    <p class="address-distance">Jarak terhitung: <strong>@address.DistanceKm.ToString("0.##") km</strong></p>
+                    @if (!address.IsWithinRadius)
+                    {
+                        <p class="address-warning">Pickup & delivery tidak tersedia untuk alamat ini. Kamu tetap dapat memilih drop off.</p>
+                    }
+                    <div class="address-actions">
+                        <a asp-action="Edit" asp-route-id="@address.Id">Edit</a>
+                        @if (!address.IsDefault)
+                        {
+                            <form asp-action="SetDefault" asp-route-id="@address.Id" method="post">
+                                <button type="submit">Jadikan utama</button>
+                            </form>
+                        }
+                        <form asp-action="Delete" asp-route-id="@address.Id" method="post" data-confirm-delete>
+                            <button class="is-danger" type="submit">Hapus</button>
+                        </form>
+                    </div>
+                </article>
+            }
+        </section>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('[data-confirm-delete]').forEach(form => form.addEventListener('submit', event => {
+            if (!window.confirm('Hapus alamat ini? Tindakan ini tidak dapat dibatalkan.')) event.preventDefault();
+        }));
+    </script>
+}

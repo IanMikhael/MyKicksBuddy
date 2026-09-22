@@ -1,0 +1,18 @@
+@{
+    var authenticatedName = User.Identity?.Name?.Trim();
+    var displayName = string.IsNullOrWhiteSpace(authenticatedName) ? "[Nama Pengguna]" : authenticatedName;
+    var avatarLabel = string.IsNullOrWhiteSpace(authenticatedName) ? "MK" : authenticatedName[..1].ToUpperInvariant();
+}
+
+<header class="customer-header" data-customer-header>
+    <div class="customer-header-inner">
+        <a class="brand-mark customer-brand" asp-controller="Customer" asp-action="Index" aria-label="MyKicksBuddy beranda customer"><svg aria-hidden="true" viewBox="0 0 32 32"><path d="M4 19c3 0 5-1.5 7-4 2-2.5 4-4 7-4s5 1 7 4l3 2c1 .8 1 2.5 0 3.5-1.5 1.5-4.5 2.5-10 2.5-7 0-12-1-14-4Z"/><path d="m8 18 5 4m-1-7 5 5m-1-7 5 5"/></svg><span>mykicksbuddy</span></a>
+        <nav class="customer-desktop-nav" aria-label="Navigasi customer"><a asp-controller="Customer" asp-action="Index">Beranda</a><a asp-controller="Orders" asp-action="Create">Pesanan</a><a asp-controller="Orders" asp-action="History">Riwayat</a><a asp-controller="Customer" asp-action="Index" asp-fragment="layanan">Layanan</a><a asp-controller="Home" asp-action="Index" asp-fragment="cara-kerja">Cara Kerja</a></nav>
+        <div class="customer-header-actions">
+            <div class="customer-account"><button class="customer-account-trigger" type="button" data-account-toggle aria-label="Menu akun" aria-expanded="false" aria-controls="customerAccountMenu"><span class="customer-avatar" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.7-3.3 3.1-5 7-5s6.3 1.7 7 5"/></svg></span><span class="customer-account-name">@displayName</span><svg class="customer-chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></button><div class="customer-account-menu" id="customerAccountMenu" data-account-menu hidden><a asp-controller="Customer" asp-action="Profile">Profil Saya</a><a asp-controller="Addresses" asp-action="Index">Alamat Saya</a><a asp-controller="Orders" asp-action="History">Riwayat Pesanan</a><div class="customer-menu-divider"></div><form asp-controller="Auth" asp-action="Logout" method="post"><button class="customer-logout" type="submit">Keluar</button></form></div></div>
+            <button class="customer-menu-toggle" type="button" data-drawer-toggle aria-label="Buka menu" aria-expanded="false" aria-controls="customerDrawer"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        </div>
+    </div>
+    <div class="customer-drawer-backdrop" data-drawer-backdrop hidden></div>
+    <aside class="customer-drawer" id="customerDrawer" data-customer-drawer aria-label="Menu customer" aria-hidden="true"><div class="customer-drawer-head"><a class="customer-drawer-profile" asp-controller="Customer" asp-action="Profile"><span class="customer-avatar" aria-hidden="true">@avatarLabel</span><strong>@displayName</strong></a><button class="customer-icon-button" type="button" data-drawer-close aria-label="Tutup menu"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><nav class="customer-drawer-nav" aria-label="Navigasi mobile customer"><a asp-controller="Customer" asp-action="Index">Beranda</a><a asp-controller="Orders" asp-action="Create">Buat Pesanan</a><a asp-controller="Orders" asp-action="History">Riwayat</a><a asp-controller="Addresses" asp-action="Index">Alamat</a><a asp-controller="Customer" asp-action="Index" asp-fragment="layanan">Layanan</a></nav><div class="customer-drawer-divider"></div><div class="customer-drawer-secondary"><form asp-controller="Auth" asp-action="Logout" method="post"><button class="customer-logout" type="submit">Keluar</button></form></div></aside>
+</header>

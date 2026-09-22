@@ -1,0 +1,45 @@
+@using System.Security.Claims
+@{
+    var section = ViewData["StaffSection"] as string ?? "dashboard";
+    var staffName = User.Identity?.Name ?? "Staff";
+    var initials = string.Concat(staffName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => x[0])).ToUpperInvariant();
+}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>@ViewData["Title"] - Staff MyKicksBuddy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/staff.css" asp-append-version="true" />
+</head>
+<body class="staff-body">
+    <div class="staff-shell">
+        <button class="staff-backdrop" data-staff-close-nav type="button" aria-label="Tutup navigasi" hidden></button>
+        <aside class="staff-sidebar" data-staff-sidebar aria-label="Navigasi Staff">
+            <div class="staff-brand"><span class="staff-brand-icon"><img src="~/images/staff/figma/logo.svg" alt="" /></span><span><strong>Mykicksbuddy</strong><small>STAFF PORTAL</small></span></div>
+            <nav class="staff-nav" aria-label="Menu Staff">
+                <a class="@(section == "dashboard" ? "is-active" : "")" asp-controller="Staff" asp-action="Index"><img src="~/images/staff/figma/dashboard.svg" alt="" />Dashboard</a>
+                <a class="@(section == "orders" ? "is-active" : "")" asp-controller="Staff" asp-action="Orders"><img src="~/images/staff/figma/orders.svg" alt="" />Pesanan</a>
+                <a class="@(section == "pickups" ? "is-active" : "")" asp-controller="Staff" asp-action="Pickups"><img src="~/images/staff/figma/pickup.svg" alt="" />Penjemputan</a>
+                <a class="@(section == "pos" ? "is-active" : "")" asp-controller="Staff" asp-action="Pos"><img src="~/images/staff/figma/pos.svg" alt="" />POS / Transaksi</a>
+                <a class="@(section == "payments" ? "is-active" : "")" asp-controller="Staff" asp-action="Payments"><img src="~/images/staff/figma/pos.svg" alt="" />Pembayaran</a>
+                <a class="@(section == "notifications" ? "is-active" : "")" asp-controller="Staff" asp-action="Notifications"><img src="~/images/staff/figma/notifications.svg" alt="" />Notifikasi</a>
+                <a class="@(section == "profile" ? "is-active" : "")" asp-controller="Staff" asp-action="Profile"><img src="~/images/staff/figma/profile.svg" alt="" />Profil</a>
+            </nav>
+            <div class="staff-side-account"><span class="staff-avatar">@initials</span><span><strong>@staffName</strong><small>Staff / Kasir</small></span><a asp-controller="Staff" asp-action="Profile" aria-label="Buka profil">›</a></div>
+        </aside>
+        <div class="staff-content">
+            <header class="staff-topbar">
+                <div class="staff-topbar-start"><button class="staff-mobile-menu" type="button" data-staff-open-nav aria-label="Buka menu">☰</button><span class="staff-topbar-label">STAFF PORTAL</span><span class="staff-topbar-divider">/</span><span>Operasional Kasir &amp; Servis</span></div>
+                <div class="staff-topbar-actions"><form class="staff-top-search" asp-controller="Staff" asp-action="Search" method="get"><img src="~/images/customer/figma/shortcut-track.svg" alt="" /><input name="q" type="search" placeholder="Cari Pesanan / Pelanggan..." aria-label="Cari pesanan atau pelanggan" /></form><span class="staff-online"><i></i> Sistem Online</span><a class="staff-top-icon" asp-controller="Staff" asp-action="Notifications" aria-label="Notifikasi"><img src="~/images/staff/figma/notifications.svg" alt="" /></a><details class="staff-account-menu"><summary><span class="staff-avatar">@initials</span><span class="staff-account-name">@staffName</span></summary><div class="staff-account-popover"><a asp-controller="Staff" asp-action="Profile">Profil Saya</a><form asp-controller="Auth" asp-action="Logout" method="post"><button type="submit">Keluar</button></form></div></details></div>
+            </header>
+            <main class="staff-main">@RenderBody()</main>
+        </div>
+    </div>
+    <script src="~/js/staff.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -2,7 +2,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using MySqlConnector;
 using MyKicksBuddy.Models.Dtos;
+using MyKicksBuddy.Models.Entities;
 using MyKicksBuddy.Services;
 
 namespace MyKicksBuddy.Controllers;
@@ -11,19 +13,45 @@ namespace MyKicksBuddy.Controllers;
 public class AuthController : Controller
 {
     private readonly IAuthService _authService;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, ILogger<AuthController> logger)
     {
         _authService = authService;
+        _logger = logger;
+    }
+
+    [HttpGet("login")]
+    public IActionResult Login()
+    {
+        return View();
+    }
+
+    [HttpGet("register")]
+    public IActionResult Register()
+    {
+        return View();
     }
 
     [HttpPost("register")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState); // Ubah dari return View(request) ke JSON
 
-        var (success, error, user) = await _authService.RegisterAsync(request);
+        (bool success, string? error, User? user) result;
+        try
+        {
+            result = await _authService.RegisterAsync(request);
+        }
+        catch (Exception ex) when (IsDatabaseConnectionException(ex))
+        {
+            _logger.LogError(ex, "Database connection failed during registration.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "Tidak dapat terhubung ke database. Silakan coba kembali." });
+        }
+
+        var (success, error, user) = result;
         if (!success)
         {
             return BadRequest(new { message = error }); // Kembalikan pesan error dalam format JSON
@@ -34,22 +62,44 @@ public class AuthController : Controller
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginRequest request)
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> Login(LoginRequest request) => LoginCore(request, false);
+
+    [HttpPost("admin-login")]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> AdminLogin(LoginRequest request) => LoginCore(request, true);
+
+    private async Task<IActionResult> LoginCore(LoginRequest request, bool adminOnly)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var (success, error, user) = await _authService.LoginAsync(request);
+        (bool success, string? error, User? user) result;
+        try
+        {
+            result = await _authService.LoginAsync(request);
+        }
+        catch (Exception ex) when (IsDatabaseConnectionException(ex))
+        {
+            _logger.LogError(ex, "Database connection failed during login.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "Tidak dapat terhubung ke database. Silakan coba kembali." });
+        }
+
+        var (success, error, user) = result;
         if (!success)
         {
             return BadRequest(new { message = error });
         }
+
+        if (adminOnly && user!.Role != "admin")
+            return BadRequest(new { message = "Akun ini tidak memiliki akses Admin." });
 
         await SignInUserAsync(user!.Id, user.FullName, user.Role);
         return Ok(new { message = "Login berhasil!", role = user.Role });
     }
 
     [HttpPost("logout")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -69,5 +119,10 @@ public class AuthController : Controller
         var principal = new ClaimsPrincipal(identity);
 
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+    }
+
+    private static bool IsDatabaseConnectionException(Exception ex)
+    {
+        return ex is MySqlException or InvalidOperationException;
     }
 }

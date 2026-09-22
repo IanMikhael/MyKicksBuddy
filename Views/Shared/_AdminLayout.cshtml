@@ -1,0 +1,20 @@
+@{
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var initial = (User.Identity?.Name ?? "A").Trim().FirstOrDefault();
+}
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>@ViewData["Title"] - Admin MyKicksBuddy</title><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/><link rel="stylesheet" href="~/css/portal.css" asp-append-version="true"/><link rel="stylesheet" href="~/css/admin.css" asp-append-version="true"/></head>
+<body class="admin-page portal-page">
+<div class="portal-shell admin-shell"><div class="portal-overlay" data-portal-overlay hidden></div>
+<aside class="portal-sidebar admin-sidebar" data-portal-sidebar aria-label="Navigasi Admin"><div class="portal-sidebar-head"><a class="portal-brand" asp-controller="Admin" asp-action="Index"><span class="admin-brand-mark">M</span> mykicksbuddy<span class="admin-brand-dot">.</span></a><button type="button" class="portal-close" data-portal-close aria-label="Tutup menu">×</button></div><div class="admin-side-caption">ADMIN PORTAL<br/><small>Operasional Pusat</small></div><nav>
+<a class="@(action=="Index"?"active":"")" asp-controller="Admin" asp-action="Index"><span><img src="~/images/admin/dashboard.svg" alt=""/></span> Dashboard</a>
+<a class="@(action is "Orders" or "OrderDetail"?"active":"")" asp-controller="Admin" asp-action="Orders"><span><img src="~/images/admin/orders.svg" alt=""/></span> Pesanan</a>
+<a class="@(action is "Services" or "CreateService" or "EditService"?"active":"")" asp-controller="Admin" asp-action="Services"><span><img src="~/images/admin/services.svg" alt=""/></span> Layanan</a>
+<a class="@(action=="Pos"?"active":"")" asp-controller="Admin" asp-action="Pos"><span><img src="~/images/admin/pos.svg" alt=""/></span> Transaksi POS</a>
+<a class="@(action=="Payments"?"active":"")" asp-controller="Admin" asp-action="Payments"><span><img src="~/images/admin/payments.svg" alt=""/></span> Pembayaran</a>
+<a class="@(action=="Reports"?"active":"")" asp-controller="Admin" asp-action="Reports"><span><img src="~/images/admin/reports.svg" alt=""/></span> Laporan</a>
+<a class="@(action=="Notifications"?"active":"")" asp-controller="Admin" asp-action="Notifications"><span><img src="~/images/admin/notifications.svg" alt=""/></span> Notifikasi</a>
+<a class="@(action=="Profile" || action=="SystemStatus" ? "active" : "")" asp-controller="Admin" asp-action="Profile"><span><img src="~/images/admin/profile.svg" alt=""/></span> Profil</a>
+</nav><div class="admin-sidebar-bottom"><span class="admin-avatar">@initial</span><div><strong>@User.Identity?.Name</strong><small>Admin</small></div><form asp-controller="Auth" asp-action="Logout" method="post"><button type="submit" aria-label="Keluar">↗</button></form></div></aside>
+<div class="portal-content"><header class="portal-topbar admin-topbar"><button type="button" class="portal-menu" data-portal-open aria-label="Buka menu">☰</button><div class="admin-breadcrumb">Admin Portal <span>/</span> <strong>@ViewData["Title"]</strong></div><div class="admin-top-actions"><a asp-controller="Admin" asp-action="Notifications" aria-label="Notifikasi">♧</a><a asp-controller="Admin" asp-action="Profile" class="admin-avatar" aria-label="Profil Admin">@initial</a></div></header><main class="portal-main admin-main">@RenderBody()</main></div></div>
+<script src="~/js/portal.js" asp-append-version="true"></script>@await RenderSectionAsync("Scripts", false)</body></html>

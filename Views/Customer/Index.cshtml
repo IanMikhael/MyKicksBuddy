@@ -1,0 +1,45 @@
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Beranda";
+    var name = User.Identity?.Name?.Trim();
+}
+<div class="customer-home customer-container">
+    <section class="customer-greeting" data-customer-reveal>
+        <p>HALO,</p>
+        <h1>@(string.IsNullOrWhiteSpace(name) ? "Pengguna" : name)</h1>
+        <span>Siap merawat sepatumu hari ini?</span>
+    </section>
+
+    <section class="customer-section customer-active-section" id="pesanan-aktif" data-customer-reveal>
+        <div class="customer-section-title"><h2>Pesanan Aktif <i></i></h2><span></span></div>
+        <div data-active-orders aria-live="polite" aria-busy="true"><article class="customer-loading-card"></article></div>
+    </section>
+
+    <section class="customer-primary-cta" data-customer-reveal>
+        <span class="customer-blue-icon"><img src="~/images/customer/figma/plus.svg" alt="" /></span>
+        <div><h2>Buat Pesanan Baru</h2><p>Pilih layanan perawatan sesuai kebutuhan.</p></div>
+        <a asp-controller="Orders" asp-action="Create">Pesan <img src="~/images/customer/figma/arrow-right.svg" alt="" /></a>
+    </section>
+
+    <section class="customer-shortcuts" aria-label="Akses cepat" data-customer-reveal>
+        <a asp-controller="Orders" asp-action="Create"><span><img src="~/images/customer/figma/shortcut-order.svg" alt="" /></span>Pesan Layanan</a>
+        <a href="#pesanan-aktif"><span><img src="~/images/customer/figma/shortcut-track.svg" alt="" /></span>Lacak Pesanan</a>
+        <a asp-controller="Orders" asp-action="History"><span><img src="~/images/customer/figma/shortcut-history.svg" alt="" /></span>Riwayat</a>
+    </section>
+
+    <section class="customer-section customer-services" id="layanan" data-customer-reveal>
+        <div class="customer-section-title"><h2>Layanan untuk Sepatumu</h2><a asp-controller="Orders" asp-action="Create">Lihat Semua</a></div>
+        <div class="customer-service-list" data-service-list aria-live="polite" aria-busy="true"><article class="customer-loading-card"></article><article class="customer-loading-card"></article></div>
+    </section>
+
+    <section class="customer-delivery-info" data-customer-reveal><span><img src="~/images/customer/figma/delivery.svg" alt="" /></span><p>Antar-jemput gratis tersedia sesuai radius area layanan 5 km.</p></section>
+
+    <section class="customer-section customer-recent-section" id="pesanan-terbaru" data-customer-reveal>
+        <div class="customer-section-title"><h2>Pesanan Terakhir</h2><a asp-controller="Orders" asp-action="History">Lihat Semua</a></div>
+        <div class="customer-recent-list" data-recent-orders aria-live="polite" aria-busy="true"><article class="customer-loading-card"></article></div>
+    </section>
+
+    <section class="customer-support" data-customer-reveal>
+        <span><img src="~/images/customer/figma/support.svg" alt="" /></span><div><h2>Butuh bantuan?</h2><p>Lihat pintasan bantuan yang tersedia.</p></div><button type="button" data-open-support>Buka Bantuan</button>
+    </section>
+</div>

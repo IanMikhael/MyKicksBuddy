@@ -1,8 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MyKicksBuddy.Models.Entities;
-using MyKicksBuddy.Repositories;
+using MyKicksBuddy.Models.Dtos;
 using MyKicksBuddy.Services;
 
 namespace MyKicksBuddy.Controllers;
@@ -11,73 +10,99 @@ namespace MyKicksBuddy.Controllers;
 [Route("addresses")]
 public class AddressesController : Controller
 {
-    private readonly IAddressRepository _addressRepository;
-    private readonly DistanceService _distanceService;
+    private readonly IAddressService _addressService;
 
-    public AddressesController(IAddressRepository addressRepository, DistanceService distanceService)
+    public AddressesController(IAddressService addressService)
     {
-        _addressRepository = addressRepository;
-        _distanceService = distanceService;
+        _addressService = addressService;
     }
 
-    [HttpGet]
+    [HttpGet("")]
     public async Task<IActionResult> Index()
     {
-        var userId = GetUserId();
-        var addresses = await _addressRepository.GetByUserIdAsync(userId);
-        return Ok(addresses);
+        var addresses = await _addressService.GetByCustomerAsync(GetUserId());
+        return View(addresses);
     }
 
-   [HttpPost]
-public async Task<IActionResult> Create(
-    string label,
-    string fullAddress,
-    string latitude,  // Ubah ke string
-    string longitude, // Ubah ke string
-    bool isDefault = false)
-{
-    // Parse manual menggunakan InvariantCulture agar titik (.) selalu terbaca dengan benar
-    if (!double.TryParse(latitude, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double lat) ||
-        !double.TryParse(longitude, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double lng))
+    [HttpGet("create")]
+    public IActionResult Create() => View("Form", new AddressFormModel());
+
+    [HttpPost("create")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(AddressFormModel model)
     {
-        return BadRequest("Format latitude atau longitude tidak valid.");
+        if (!ModelState.IsValid)
+            return View("Form", model);
+
+        var result = await _addressService.CreateAsync(GetUserId(), model);
+        if (!result.Success)
+        {
+            ModelState.AddModelError(string.Empty, result.Error ?? "Alamat tidak dapat disimpan.");
+            return View("Form", model);
+        }
+
+        TempData["Success"] = "Alamat berhasil disimpan.";
+        return RedirectToAction(nameof(Index));
     }
 
-    var userId = GetUserId();
-
-    var distanceKm = _distanceService.CalculateDistanceKm(lat, lng);
-    var isWithinRadius = _distanceService.IsWithinRadius(distanceKm);
-
-    if (!isWithinRadius)
-        return Ok($"Ditolak: jarak {distanceKm} km melebihi 5 km");
-
-    var address = new CustomerAddress
+    [HttpGet("{id:long}/edit")]
+    public async Task<IActionResult> Edit(long id)
     {
-        UserId = userId,
-        Label = label,
-        FullAddress = fullAddress,
-        Latitude = lat,   // Gunakan variabel lat hasil parse
-        Longitude = lng,  // Gunakan variabel lng hasil parse
-        DistanceKm = distanceKm,
-        IsWithinRadius = isWithinRadius,
-        IsDefault = isDefault
-    };
+        var address = await _addressService.GetAsync(id, GetUserId());
+        if (address is null)
+            return NotFound();
 
-    var newId = await _addressRepository.CreateAsync(address);
-    return Ok($"Berhasil, ID baru: {newId}, jarak: {distanceKm} km, userId: {userId}");
-}
+        return View("Form", new AddressFormModel
+        {
+            Id = address.Id,
+            Label = address.Label,
+            FullAddress = address.FullAddress,
+            Latitude = address.Latitude,
+            Longitude = address.Longitude,
+            IsDefault = address.IsDefault
+        });
+    }
 
-    [HttpPost("delete/{id}")]
+    [HttpPost("{id:long}/edit")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(long id, AddressFormModel model)
+    {
+        model.Id = id;
+        if (!ModelState.IsValid)
+            return View("Form", model);
+
+        var result = await _addressService.UpdateAsync(GetUserId(), model);
+        if (!result.Success)
+        {
+            ModelState.AddModelError(string.Empty, result.Error ?? "Alamat tidak dapat diperbarui.");
+            return View("Form", model);
+        }
+
+        TempData["Success"] = "Alamat berhasil diperbarui.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("{id:long}/default")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetDefault(long id)
+    {
+        if (!await _addressService.SetDefaultAsync(id, GetUserId()))
+            return NotFound();
+
+        TempData["Success"] = "Alamat utama berhasil diubah.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("{id:long}/delete")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(long id)
     {
-        var userId = GetUserId();
-        await _addressRepository.DeleteAsync(id, userId);
+        if (!await _addressService.DeleteAsync(id, GetUserId()))
+            return NotFound();
+
         TempData["Success"] = "Alamat berhasil dihapus.";
         return RedirectToAction(nameof(Index));
     }
 
-    private long GetUserId()
-    {
-        return long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-    }
+    private long GetUserId() => long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 }

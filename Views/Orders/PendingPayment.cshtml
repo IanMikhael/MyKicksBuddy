@@ -1,0 +1,26 @@
+@model MyKicksBuddy.Models.Dtos.OrderDetailResponse
+@using System.Globalization
+@using MyKicksBuddy.Services
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Status Pembayaran";
+    var paid = Model.PaymentStatus == PaymentStatusWorkflow.Paid;
+    var failed = Model.PaymentStatus == PaymentStatusWorkflow.Failed;
+    var expired = Model.PaymentStatus == PaymentStatusWorkflow.Expired;
+    var title = paid ? "Pembayaran Berhasil" : failed ? "Pembayaran Gagal" : expired ? "Waktu Pembayaran Habis" : "Pembayaran Belum Terkonfirmasi";
+    var description = paid ? "Pembayaran pesanan telah terverifikasi oleh sistem." : failed ? "Pembayaran tidak berhasil. Pesanan belum diproses." : expired ? "Batas waktu pembayaran telah berakhir. Pesanan belum diproses." : "Pesananmu tercatat, tetapi belum ada pembayaran yang terverifikasi. Halaman ini tidak memproses pembayaran online.";
+    var culture = CultureInfo.GetCultureInfo("id-ID");
+}
+
+<div class="customer-container customer-workspace payment-page">
+    <a class="workspace-back" asp-controller="Orders" asp-action="Detail" asp-route-id="@Model.Id">← Kembali ke pesanan</a>
+    <section class="payment-pending-card">
+        <span class="payment-state-icon @(paid ? "is-success" : "")" aria-hidden="true">@(paid ? "✓" : "○")</span>
+        <h1>@title</h1>
+        <p>@description</p>
+        <div class="payment-transaction-detail"><h2>Rincian Transaksi <span class="customer-status-badge @(paid ? "is-success" : "")">@PaymentStatusWorkflow.Label(Model.PaymentStatus)</span></h2><dl><div><dt>Kode Pesanan</dt><dd>@Model.OrderCode</dd></div><div><dt>Layanan</dt><dd>@(Model.Items.FirstOrDefault()?.ServiceName ?? "—")</dd></div><div><dt>Metode Pembayaran</dt><dd>Belum tersedia</dd></div><div><dt>Total Pembayaran</dt><dd>@Model.TotalAmount.ToString("C0", culture)</dd></div></dl></div>
+        @if (!paid) { <div class="workspace-info">Integrasi penyedia pembayaran/QRIS belum tersedia. Tidak ada QR atau konfirmasi pembayaran simulasi.</div> }
+        <a class="workspace-primary-action" asp-controller="Orders" asp-action="Detail" asp-route-id="@Model.Id">Lihat Status Pesanan</a>
+        <a class="workspace-secondary-action" asp-controller="Customer" asp-action="Index">Kembali ke Beranda</a>
+    </section>
+</div>

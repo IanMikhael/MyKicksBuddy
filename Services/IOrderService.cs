@@ -4,9 +4,9 @@ namespace MyKicksBuddy.Services;
 
 public interface IOrderService
 {
-    Task<(bool Success, string? Error, long OrderId)> CreateOrderAsync(long customerId, CreateOrderRequest request);
+    Task<OrderCreationResult> CreateOrderAsync(long customerId, CreateOrderRequest request);
 
-    Task<(bool Success, string? Error)> UpdateStatusAsync(long orderId, string status, long staffId, string? notes);
+    Task<(bool Success, string? Error)> UpdateStatusAsync(long orderId, string status, long staffId, string staffRole, string? notes);
 
     Task<IEnumerable<OrderStatusLogResponse>> GetOrderLogsAsync(long orderId);
 
@@ -19,6 +19,8 @@ public interface IOrderService
     Task<OrderDetailResponse?> GetOrderDetailForStaffAsync(long orderId);
 
     // Tambahan untuk Chatbot:
-    Task<object?> GetOrderByCodeAsync(string orderCode);
-    Task<object> GetAllServicesAsync();
+    Task<OrderDetailResponse?> GetOrderByCodeAsync(string orderCode, long customerId);
+    Task<IReadOnlyList<ServiceOptionDto>> GetAllServicesAsync();
+    Task<IReadOnlyList<PortalOrderRow>> GetAllOrdersAsync(string? status, DateTime? from, DateTime? to, int? limit = null);
+    Task<DashboardSummary> GetDashboardSummaryAsync();
 }

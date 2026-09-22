@@ -32,6 +32,32 @@ x86/
 bld/
 [Bb]in/
 [Oo]bj/
+.customer-backend-verification/
+.customer-backend-tests-bin/
+.admin-manual-runtime/
+.build-landing-verify/
+.codex-build/
+.codex-localappdata/
+.codex-motion-build/
+.customer-qa-auth/
+.customer-qa-build*/
+.customer-qa-final/
+.customer-qa-verification/
+.qa-bin/
+.staff-manual-verification/
+.staff-verification/
+.visual-qa-build/
+.visual-qa-check/
+.visual-qa-final/
+.repo-clean-runtime/
+.admin-manual-bin/
+.admin-manual-obj/
+Tests/**/.admin-manual-bin/
+Tests/**/.admin-manual-obj/
+Tests/**/.qa-bin/
+Tests/**/.customer-backend-tests-bin/
+Tests/**/.customer-backend-tests-obj/
+Tests/**/.customer-backend-verification/
 [Ll]og/
 [Ll]ogs/
 
@@ -480,3 +506,45 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# ==================================================
+# MyKicksBuddy local / QA / private artifacts
+# ==================================================
+
+# Environment files
+.env
+.env.*
+*.env
+
+# Local development configuration
+appsettings.Development.json
+
+# QA / generated documentation
+docs/
+*_REPORT.md
+design-qa.md
+
+# QA screenshots / comparisons
+admin-qa-screenshots/
+staff-qa-screenshots/
+*qa-screenshot*
+*qa-comparison*
+
+# ASP.NET Data Protection keys
+**/DataProtection-Keys/
+**/keys/
+
+# Local databases / dumps
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.dump
+
+# Codex / temporary runtime artifacts
+.codex*/
+.codex-*
+codex-*
+*codex-build*
+*codex-runtime*
+

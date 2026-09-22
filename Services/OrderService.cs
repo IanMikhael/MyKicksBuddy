@@ -15,23 +15,40 @@ public class OrderService : IOrderService
         _addressRepository = addressRepository;
     }
 
-    public async Task<(bool Success, string? Error, long OrderId)> CreateOrderAsync(long customerId, CreateOrderRequest request)
+    public async Task<OrderCreationResult> CreateOrderAsync(long customerId, CreateOrderRequest request)
     {
+        if (customerId <= 0)
+            return OrderCreationResult.Failed("Customer tidak valid.");
+
+        var fulfillmentType = request.FulfillmentType?.Trim().ToLowerInvariant();
+        if (fulfillmentType is not ("pickup_delivery" or "drop_off"))
+            return OrderCreationResult.Failed("Metode penyerahan pesanan tidak valid.");
+
+        if (request.Items is null || request.Items.Count == 0)
+            return OrderCreationResult.Failed("Pilih minimal satu layanan.");
+
+        if (request.Items.Any(item => item.ServiceId <= 0 || item.Quantity is < 1 or > 20 || string.IsNullOrWhiteSpace(item.ShoeDescription)))
+            return OrderCreationResult.Failed("Detail layanan, sepatu, atau jumlah belum valid.");
+
         decimal? distanceKm = null;
 
-        if (request.FulfillmentType == "pickup_delivery")
+        if (fulfillmentType == "pickup_delivery")
         {
             if (!request.AddressId.HasValue)
-                return (false, "Alamat penjemputan wajib dipilih untuk layanan antar-jemput.", 0);
+                return OrderCreationResult.Failed("Alamat penjemputan wajib dipilih untuk layanan antar-jemput.");
 
-            var address = await _addressRepository.GetByIdAsync(request.AddressId.Value);
-            if (address is null || address.UserId != customerId)
-                return (false, "Alamat tidak ditemukan atau bukan milik pengguna.", 0);
+            var address = await _addressRepository.GetByIdAsync(request.AddressId.Value, customerId);
+            if (address is null)
+                return OrderCreationResult.Failed("Alamat tidak ditemukan atau bukan milik Anda.");
 
             if (!address.IsWithinRadius)
-                return (false, $"Maaf, alamat anda berada di luar jangkauan (jarak {address.DistanceKm} km dari toko, maksimal 5 km).", 0);
+                return OrderCreationResult.Failed($"Alamat berada di luar radius antar-jemput 5 km (jarak {address.DistanceKm:0.##} km). Pilih drop off untuk melanjutkan.");
 
-            distanceKm = (decimal)address.DistanceKm; 
+            distanceKm = (decimal)address.DistanceKm;
+        }
+        else
+        {
+            request.AddressId = null;
         }
 
         string orderCode = $"MKC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4].ToUpper()}";
@@ -41,36 +58,45 @@ public class OrderService : IOrderService
             OrderCode = orderCode,
             CustomerId = customerId,
             Channel = "online",
-            FulfillmentType = request.FulfillmentType,
+            FulfillmentType = fulfillmentType,
             AddressId = request.AddressId,
             DistanceKm = distanceKm,
             Subtotal = 0,
             Total = 0,
-            Status = "pending_payment",
-            PaymentStatus = "unpaid",
+            Status = OrderStatusWorkflow.PendingPayment,
+            PaymentStatus = PaymentStatusWorkflow.Unpaid,
             Notes = request.Notes
         };
 
-        var orderId = await ((OrderRepository)_orderRepository).CreateWithItemsAsync(order, request.Items);
-        
-        return (true, null, orderId);
+        try
+        {
+            var orderId = await _orderRepository.CreateWithItemsAsync(order, request.Items);
+            return new OrderCreationResult(true, null, orderId, orderCode);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return OrderCreationResult.Failed(ex.Message);
+        }
     }
 
-    public async Task<(bool Success, string? Error)> UpdateStatusAsync(long orderId, string status, long staffId, string? notes)
+    public async Task<(bool Success, string? Error)> UpdateStatusAsync(long orderId, string status, long staffId, string staffRole, string? notes)
     {
+        if (staffId <= 0 || staffRole is not ("kasir" or "admin" or "staff"))
+            return (false, "Petugas tidak memiliki izin untuk memperbarui status.");
+
         var order = await _orderRepository.GetByIdAsync(orderId);
         if (order is null)
             return (false, "Pesanan tidak ditemukan.");
 
-        var validStatuses = new[] { 
-            "pending_payment", "confirmed", "picked_up", "in_progress", 
-            "ready", "delivered", "completed", "cancelled" 
-        };
-
-        if (!validStatuses.Contains(status))
+        status = status?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (!OrderStatusWorkflow.IsKnown(status))
             return (false, "Status pesanan tidak valid.");
 
-        await _orderRepository.UpdateStatusWithLogAsync(orderId, status, staffId, notes);
+        if (!OrderStatusWorkflow.OperatorNextStatuses(order.Status, order.PaymentStatus).Contains(status))
+            return (false, "Transisi status tidak diizinkan untuk kondisi pesanan dan pembayaran saat ini.");
+
+        if (!await _orderRepository.UpdateStatusWithLogAsync(orderId, order.Status, status, staffId, notes))
+            return (false, "Status pesanan atau pembayaran telah berubah. Muat ulang sebelum mencoba lagi.");
         return (true, null);
     }
 
@@ -91,7 +117,9 @@ public class OrderService : IOrderService
 
     public async Task UpdateOrderStatusWithLogAsync(long orderId, string status, long handledBy, string? notes)
     {
-        await _orderRepository.UpdateStatusWithLogAsync(orderId, status, handledBy, notes);
+        var result = await UpdateStatusAsync(orderId, status, handledBy, "staff", notes);
+        if (!result.Success)
+            throw new InvalidOperationException(result.Error);
     }
 
     public async Task<OrderDetailResponse?> GetOrderDetailForStaffAsync(long orderId)
@@ -101,14 +129,18 @@ public class OrderService : IOrderService
 
     // --- Implementasi Chatbot (Mengambil langsung dari Database) ---
 
-    public async Task<object?> GetOrderByCodeAsync(string orderCode)
+    public async Task<OrderDetailResponse?> GetOrderByCodeAsync(string orderCode, long customerId)
     {
-        return await _orderRepository.GetDetailByCodeAsync(orderCode);
+        return await _orderRepository.GetDetailByCodeAndCustomerAsync(orderCode.Trim(), customerId);
     }
 
-    public async Task<object> GetAllServicesAsync()
+    public Task<IReadOnlyList<ServiceOptionDto>> GetAllServicesAsync()
     {
-        // Mengambil daftar layanan aktif dari database (tabel services)
-        return await _orderRepository.GetAllServicesAsync();
+        return _orderRepository.GetActiveServicesAsync();
     }
+
+    public Task<IReadOnlyList<PortalOrderRow>> GetAllOrdersAsync(string? status, DateTime? from, DateTime? to, int? limit = null) =>
+        _orderRepository.GetAllAsync(status, from, to, limit);
+
+    public Task<DashboardSummary> GetDashboardSummaryAsync() => _orderRepository.GetDashboardSummaryAsync();
 }

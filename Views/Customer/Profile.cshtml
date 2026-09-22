@@ -1,0 +1,51 @@
+@model MyKicksBuddy.Models.Entities.User
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Profil";
+    var initial = string.IsNullOrWhiteSpace(Model.FullName) ? "M" : Model.FullName[..1].ToUpperInvariant();
+}
+
+<div class="customer-container customer-profile-page">
+    <section class="profile-hero">
+        <span class="profile-avatar-wrap"><span class="profile-avatar" aria-hidden="true">@initial</span></span>
+        <h1>@Model.FullName</h1>
+        <p>@(Model.Email ?? Model.Phone ?? "Kontak belum ditambahkan")</p>
+        <button class="profile-edit-button" type="button" disabled title="Perubahan profil belum tersedia">Edit Profil</button>
+    </section>
+
+    <section class="profile-group">
+        <h2>INFORMASI AKUN</h2>
+        <div class="profile-list">
+            <div class="profile-row"><span>Nama Lengkap</span><strong>@Model.FullName</strong></div>
+            <div class="profile-row"><span>Email</span><strong>@(Model.Email ?? "Belum ditambahkan")</strong></div>
+            <div class="profile-row"><span>Nomor Ponsel</span><strong>@(Model.Phone ?? "Belum ditambahkan")</strong></div>
+        </div>
+    </section>
+
+    <section class="profile-group">
+        <h2>LAYANAN &amp; PENGIRIMAN</h2>
+        <div class="profile-list">
+            <a class="profile-link" asp-controller="Addresses" asp-action="Index"><span class="profile-link-icon"><img src="~/images/customer/figma/delivery.svg" alt="" /></span><span><strong>Alamat Tersimpan</strong><small>Kelola alamat untuk penjemputan.</small></span><span aria-hidden="true">›</span></a>
+            <a class="profile-link" asp-controller="Orders" asp-action="History"><span class="profile-link-icon"><img src="~/images/customer/figma/shortcut-history.svg" alt="" /></span><span><strong>Riwayat Pesanan</strong><small>Lihat semua pesanan perawatan sebelumnya.</small></span><span aria-hidden="true">›</span></a>
+        </div>
+    </section>
+
+    <section class="profile-group">
+        <h2>AKUN &amp; KEAMANAN</h2>
+        <div class="profile-list">
+            <button class="profile-link" type="button" disabled title="Belum tersedia"><span class="profile-link-icon"><img src="~/images/customer/figma/shortcut-order.svg" alt="" /></span><span><strong>Ubah Kata Sandi</strong><small>Kelola kata sandi akunmu · belum tersedia</small></span><span aria-hidden="true">›</span></button>
+            <button class="profile-link" type="button" disabled title="Belum tersedia"><span class="profile-link-icon"><img src="~/images/customer/figma/shortcut-track.svg" alt="" /></span><span><strong>Pengaturan Akun</strong><small>Preferensi aplikasi dan notifikasi · belum tersedia</small></span><span aria-hidden="true">›</span></button>
+        </div>
+    </section>
+
+    <section class="profile-group">
+        <h2>BANTUAN &amp; INFORMASI</h2>
+        <div class="profile-list">
+            <button class="profile-link" type="button" data-open-support><span class="profile-link-icon"><img src="~/images/customer/figma/support.svg" alt="" /></span><span><strong>Pusat Bantuan</strong><small>Lihat bantuan untuk layanan dan pesanan.</small></span><span aria-hidden="true">›</span></button>
+            <button class="profile-link" type="button" data-open-support><span class="profile-link-icon"><img src="~/images/customer/figma/support.svg" alt="" /></span><span><strong>Chat dengan Tim Kami</strong><small>Pintasan bantuan; chat langsung belum tersedia</small></span><span aria-hidden="true">›</span></button>
+            <button class="profile-link" type="button" disabled title="Kebijakan layanan belum tersedia"><span class="profile-link-icon"><img src="~/images/customer/figma/shortcut-history.svg" alt="" /></span><span><strong>Kebijakan Layanan</strong><small>Syarat dan ketentuan perawatan · belum tersedia</small></span><span aria-hidden="true">›</span></button>
+        </div>
+    </section>
+
+    <form asp-controller="Auth" asp-action="Logout" method="post"><button class="profile-logout" type="submit">Keluar</button></form>
+</div>

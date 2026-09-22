@@ -1,0 +1,16 @@
+@{
+    var portal = (ViewData["Portal"] as string ?? "staff").ToLowerInvariant();
+    var isAdmin = portal == "admin";
+    var homeController = isAdmin ? "Admin" : "Staff";
+}
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>@ViewData["Title"] - MyKicksBuddy</title><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/><link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/><link rel="stylesheet" href="~/css/portal.css" asp-append-version="true"/></head>
+<body class="portal-page">
+<div class="portal-shell">
+    <div class="portal-overlay" data-portal-overlay hidden></div>
+    <aside class="portal-sidebar" data-portal-sidebar aria-label="Navigasi @portal"><div class="portal-sidebar-head"><a class="portal-brand" asp-controller="@homeController" asp-action="Index">mykicksbuddy</a><button type="button" class="portal-close" data-portal-close aria-label="Tutup menu">×</button></div><p class="portal-role">@(isAdmin ? "ADMIN PORTAL" : "STAFF OPERASIONAL")</p><nav>
+        @if (isAdmin) {<a asp-controller="Admin" asp-action="Index">Ringkasan</a><a asp-controller="Admin" asp-action="Orders">Pesanan</a><a asp-controller="Admin" asp-action="Services">Layanan</a><a asp-controller="Admin" asp-action="Users">User internal</a>}
+        else {<a asp-controller="Staff" asp-action="Index">Pesanan</a>}
+    </nav><div class="portal-sidebar-foot"><span>@User.Identity?.Name</span><form asp-controller="Auth" asp-action="Logout" method="post"><button type="submit">Keluar</button></form></div></aside>
+    <div class="portal-content"><header class="portal-topbar"><button type="button" class="portal-menu" data-portal-open aria-label="Buka menu">☰</button><div><strong>@(isAdmin ? "Admin" : "Staff") MyKicksBuddy</strong><span>@DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("id-ID"))</span></div></header><main class="portal-main">@RenderBody()</main></div>
+</div><script src="~/js/portal.js" asp-append-version="true"></script>@await RenderSectionAsync("Scripts", false)</body></html>

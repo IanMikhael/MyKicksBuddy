@@ -1,0 +1,20 @@
+@model MyKicksBuddy.Models.Dtos.StaffOrdersPageViewModel
+@{
+    Layout = "_StaffLayout";
+    ViewData["Title"] = "Cari Pesanan Pelanggan";
+    ViewData["StaffSection"] = "orders";
+}
+<div class="staff-page-heading"><div><p class="staff-kicker">STAFF PORTAL / QUICK LOOKUP</p><h1 class="staff-page-title">Cari Pesanan Pelanggan</h1><p class="staff-page-intro">Cari berdasarkan kode pesanan, nama pelanggan, atau nama layanan yang tercatat.</p></div></div>
+<form class="staff-toolbar staff-card" method="get" asp-action="Search"><input class="staff-input" name="q" value="@Model.Query" type="search" maxlength="80" placeholder="Cari kode pesanan atau pelanggan..." aria-label="Cari kode pesanan atau pelanggan" /><button class="staff-btn staff-btn-primary" type="submit">Cari</button></form>
+@if (Model.Query is null)
+{
+    <section class="staff-card staff-search-blank"><div class="staff-empty"><span class="staff-empty-icon"><img src="~/images/customer/figma/shortcut-track.svg" alt="" /></span><p class="staff-kicker">PENCARIAN SIAP DIGUNAKAN</p><h2>Mulai Cari Data Pesanan</h2><p>Ketik kode pesanan, nama pelanggan, atau layanan untuk memulai pencarian.</p><div class="staff-search-tips"><div><strong>ID Transaksi</strong><small>Cari kode yang tertera di detail pesanan.</small></div><div><strong>Nama Pelanggan</strong><small>Temukan pesanan dari nama pemilik akun.</small></div><div><strong>Nama Layanan</strong><small>Saring berdasarkan layanan perawatan.</small></div></div></div></section>
+}
+else if (!Model.Orders.Any())
+{
+    <section class="staff-card staff-search-blank"><div class="staff-empty"><span class="staff-empty-icon"><img src="~/images/staff/figma/orders.svg" alt="" /></span><p class="staff-kicker">TIDAK ADA HASIL PENCARIAN</p><h2>Pesanan tidak ditemukan</h2><p>Tidak ada pesanan yang cocok dengan “@Model.Query”. Coba periksa kembali kode atau gunakan kata kunci yang lebih singkat.</p><div class="staff-search-tips"><div><strong>Periksa kode</strong><small>Pastikan kode pesanan diketik lengkap dan tanpa spasi tambahan.</small></div><div><strong>Cari nama pelanggan</strong><small>Gunakan sebagian nama jika kode pesanan belum diketahui.</small></div><div><strong>Cari layanan</strong><small>Temukan pesanan berdasarkan nama layanan perawatan.</small></div></div><a class="staff-btn staff-btn-light" asp-action="Search">Mulai Pencarian Baru</a></div></section>
+}
+else
+{
+    <partial name="_OrderTable" model="Model" />
+}
