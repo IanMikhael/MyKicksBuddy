@@ -22,35 +22,50 @@ public class OrderService : IOrderService
 
     public async Task<(bool Success, string? Error, long OrderId)> CreateOrderAsync(long customerId, CreateOrderRequest request)
     {
+        var result = await CreateOnlineOrderInternalAsync(
+            customerId, request.FulfillmentType, request.AddressId, request.Notes, request.Items);
+        return (result.Success, result.Error, result.OrderId);
+    }
+
+    /// <summary>
+    /// Logic bersama pembuatan order channel "online" (dipakai customer & chatbot):
+    /// validasi alamat/radius untuk pickup_delivery, lalu insert order dengan retry
+    /// kalau order_code kebetulan tabrakan (sangat jarang terjadi).
+    /// </summary>
+    private async Task<(bool Success, string? Error, long OrderId, string? OrderCode, decimal TotalAmount)> CreateOnlineOrderInternalAsync(
+        long customerId, string fulfillmentType, long? addressId, string? notes, List<OrderItemRequest> items)
+    {
         decimal? distanceKm = null;
+        long? resolvedAddressId = null;
 
-        if (request.FulfillmentType == "pickup_delivery")
+        if (fulfillmentType == "pickup_delivery")
         {
-            if (!request.AddressId.HasValue)
-                return (false, "Alamat penjemputan wajib dipilih untuk layanan antar-jemput.", 0);
+            if (!addressId.HasValue)
+                return (false, "Alamat penjemputan wajib dipilih untuk layanan antar-jemput.", 0, null, 0);
 
-            var address = await _addressRepository.GetByIdAsync(request.AddressId.Value);
+            var address = await _addressRepository.GetByIdAsync(addressId.Value);
             if (address is null || address.UserId != customerId)
-                return (false, "Alamat tidak ditemukan atau bukan milik pengguna.", 0);
+                return (false, "Alamat tidak ditemukan atau bukan milik pengguna.", 0, null, 0);
 
             if (!address.IsWithinRadius)
-                return (false, $"Maaf, alamat anda berada di luar jangkauan (jarak {address.DistanceKm} km dari toko, maksimal 5 km).", 0);
+                return (false, $"Maaf, alamat anda berada di luar jangkauan (jarak {address.DistanceKm} km dari toko, maksimal 5 km).", 0, null, 0);
 
-            distanceKm = (decimal)address.DistanceKm; 
+            distanceKm = (decimal)address.DistanceKm;
+            resolvedAddressId = addressId;
         }
 
         var order = new Order
         {
             CustomerId = customerId,
             Channel = "online",
-            FulfillmentType = request.FulfillmentType,
-            AddressId = request.AddressId,
+            FulfillmentType = fulfillmentType,
+            AddressId = resolvedAddressId,
             DistanceKm = distanceKm,
             Subtotal = 0,
             Total = 0,
             Status = "pending_payment",
             PaymentStatus = "unpaid",
-            Notes = request.Notes
+            Notes = notes
         };
 
         const int maxAttempts = 3;
@@ -59,8 +74,8 @@ public class OrderService : IOrderService
             order.OrderCode = GenerateOrderCode();
             try
             {
-                var orderId = await _orderRepository.CreateWithItemsAsync(order, request.Items);
-                return (true, null, orderId);
+                var orderId = await _orderRepository.CreateWithItemsAsync(order, items);
+                return (true, null, orderId, order.OrderCode, order.Total);
             }
             catch (MySqlException ex) when (ex.Number == 1062 && ex.Message.Contains("order_code") && attempt < maxAttempts)
             {
@@ -68,11 +83,11 @@ public class OrderService : IOrderService
             }
             catch (InvalidOperationException ex)
             {
-                return (false, ex.Message, 0);
+                return (false, ex.Message, 0, null, 0);
             }
         }
 
-        return (false, "Gagal membuat kode pesanan yang unik. Silakan coba lagi.", 0);
+        return (false, "Gagal membuat kode pesanan yang unik. Silakan coba lagi.", 0, null, 0);
     }
 
     private static string GenerateOrderCode() =>
@@ -162,57 +177,9 @@ public class OrderService : IOrderService
             customer.Id = newCustomerId;
         }
 
-        decimal? distanceKm = null;
-
-        if (request.FulfillmentType == "pickup_delivery")
-        {
-            if (!request.AddressId.HasValue)
-                return (false, "Alamat penjemputan wajib dipilih untuk layanan antar-jemput.", null, 0);
-
-            var address = await _addressRepository.GetByIdAsync(request.AddressId.Value);
-            if (address is null || address.UserId != customer.Id)
-                return (false, "Alamat tidak ditemukan atau bukan milik pelanggan ini.", null, 0);
-
-            if (!address.IsWithinRadius)
-                return (false, $"Maaf, alamat berada di luar jangkauan (jarak {address.DistanceKm} km dari toko, maksimal 5 km).", null, 0);
-
-            distanceKm = (decimal)address.DistanceKm;
-        }
-
-        var order = new Order
-        {
-            CustomerId = customer.Id,
-            Channel = "online",
-            FulfillmentType = request.FulfillmentType,
-            AddressId = request.FulfillmentType == "pickup_delivery" ? request.AddressId : null,
-            DistanceKm = distanceKm,
-            Subtotal = 0,
-            Total = 0,
-            Status = "pending_payment",
-            PaymentStatus = "unpaid",
-            Notes = request.Notes
-        };
-
-        const int maxAttempts = 3;
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            order.OrderCode = GenerateOrderCode();
-            try
-            {
-                await _orderRepository.CreateWithItemsAsync(order, request.Items);
-                return (true, null, order.OrderCode, order.Total);
-            }
-            catch (MySqlException ex) when (ex.Number == 1062 && ex.Message.Contains("order_code") && attempt < maxAttempts)
-            {
-                // Tabrakan kode pesanan (kemungkinan sangat kecil) - coba lagi dengan kode baru.
-            }
-            catch (InvalidOperationException ex)
-            {
-                return (false, ex.Message, null, 0);
-            }
-        }
-
-        return (false, "Gagal membuat kode pesanan yang unik. Silakan coba lagi.", null, 0);
+        var result = await CreateOnlineOrderInternalAsync(
+            customer.Id, request.FulfillmentType, request.AddressId, request.Notes, request.Items);
+        return (result.Success, result.Error, result.OrderCode, result.TotalAmount);
     }
 
     public async Task<IReadOnlyList<ChatbotAddressResponse>> GetCustomerAddressesAsync(string phone)

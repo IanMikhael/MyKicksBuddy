@@ -14,6 +14,7 @@ public class CreatePosOrderRequest
     [RegularExpression("^(cash|midtrans)$", ErrorMessage = "PaymentMethod harus 'cash' atau 'midtrans'.")]
     public string PaymentMethod { get; set; } = "cash";
 
+    [MaxLength(255, ErrorMessage = "Catatan maksimal 255 karakter.")]
     public string? Notes { get; set; }
 
     [Required(ErrorMessage = "Item pesanan tidak boleh kosong.")]

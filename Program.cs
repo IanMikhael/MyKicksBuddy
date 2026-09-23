@@ -1,6 +1,8 @@
 using System.Data;
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using MySqlConnector;
 using MyKicksBuddy.Repositories;
@@ -54,6 +56,22 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Rate limiting - batasi percobaan login/register per IP supaya tidak gampang di-brute-force
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -71,6 +89,8 @@ app.UseRequestLocalization(new RequestLocalizationOptions()
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

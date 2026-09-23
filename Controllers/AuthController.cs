@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MyKicksBuddy.Models.Dtos;
 using MyKicksBuddy.Services;
 
@@ -18,6 +19,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
         if (!ModelState.IsValid)
@@ -39,6 +41,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
         if (!ModelState.IsValid)
