@@ -8,6 +8,9 @@ namespace MyKicksBuddy.Services;
 
 public class JwtService : IJwtService
 {
+    // Dipakai bareng Program.cs (OnTokenValidated) buat cocokkan token vs stamp terbaru di DB.
+    public const string SecurityStampClaimType = "sstamp";
+
     private readonly IConfiguration _configuration;
 
     public JwtService(IConfiguration configuration)
@@ -29,6 +32,7 @@ public class JwtService : IJwtService
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.FullName),
             new(ClaimTypes.Role, user.Role),
+            new(SecurityStampClaimType, user.SecurityStamp),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
@@ -36,7 +40,10 @@ public class JwtService : IJwtService
             issuer: issuer,
             audience: audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(7),
+            // Token pendek + security stamp (dicek di Program.cs) menggantikan pola lama
+            // "berlaku 7 hari & tidak bisa dicabut". Logout / nonaktifkan akun sekarang
+            // benar-benar membatalkan token, bukan cuma instruksi hapus di client.
+            expires: DateTime.UtcNow.AddHours(2),
             signingCredentials: credentials
         );
 

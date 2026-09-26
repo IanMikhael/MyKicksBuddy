@@ -1,4 +1,5 @@
 using System.Data;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -53,6 +54,33 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = jwtIssuer,
         ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+    };
+
+    // Token bisa valid secara kriptografis tapi sudah "dicabut" (logout, ganti password,
+    // akun dinonaktifkan) - cek ulang security stamp & status akun ke DB di tiap request,
+    // supaya token yang sudah dicabut benar-benar berhenti bisa dipakai, bukan cuma
+    // menunggu masa berlakunya habis.
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var userIdClaim = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+            var tokenStamp = context.Principal?.FindFirstValue(JwtService.SecurityStampClaimType);
+
+            if (!long.TryParse(userIdClaim, out var userId) || string.IsNullOrEmpty(tokenStamp))
+            {
+                context.Fail("Token tidak valid.");
+                return;
+            }
+
+            var userRepository = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+            var user = await userRepository.GetByIdAsync(userId);
+
+            if (user is null || !user.IsActive || user.SecurityStamp != tokenStamp)
+            {
+                context.Fail("Sesi tidak lagi berlaku. Silakan login ulang.");
+            }
+        }
     };
 });
 

@@ -8,6 +8,7 @@ public class User
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public string PasswordHash { get; set; } = string.Empty;
+    public string SecurityStamp { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

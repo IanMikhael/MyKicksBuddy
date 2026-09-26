@@ -32,6 +32,7 @@ public class AuthService : IAuthService
             FullName = request.FullName,
             Email = request.Email,
             Phone = request.Phone,
+            SecurityStamp = Guid.NewGuid().ToString("N"),
             IsActive = true
         };
 
@@ -54,5 +55,10 @@ public class AuthService : IAuthService
             return (false, "Email/nomor telepon atau password salah.", null);
 
         return (true, null, user);
+    }
+
+    public async Task InvalidateSessionsAsync(long userId)
+    {
+        await _userRepository.UpdateSecurityStampAsync(userId, Guid.NewGuid().ToString("N"));
     }
 }

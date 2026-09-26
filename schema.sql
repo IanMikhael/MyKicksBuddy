@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
     email           VARCHAR(150) UNIQUE,
     phone           VARCHAR(20) UNIQUE,
     password_hash   VARCHAR(255) NOT NULL,
+    security_stamp  VARCHAR(64) NOT NULL,
     is_active       TINYINT(1) NOT NULL DEFAULT 1,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

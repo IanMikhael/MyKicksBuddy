@@ -17,8 +17,8 @@ public class UserRepository : IUserRepository
     {
         const string sql = @"
             SELECT id AS Id, role AS Role, full_name AS FullName, email AS Email,
-                   phone AS Phone, password_hash AS PasswordHash, is_active AS IsActive,
-                   created_at AS CreatedAt, updated_at AS UpdatedAt
+                   phone AS Phone, password_hash AS PasswordHash, security_stamp AS SecurityStamp,
+                   is_active AS IsActive, created_at AS CreatedAt, updated_at AS UpdatedAt
             FROM users
             WHERE email = @Value OR phone = @Value
             LIMIT 1";
@@ -30,8 +30,8 @@ public class UserRepository : IUserRepository
     {
         const string sql = @"
             SELECT id AS Id, role AS Role, full_name AS FullName, email AS Email,
-                   phone AS Phone, password_hash AS PasswordHash, is_active AS IsActive,
-                   created_at AS CreatedAt, updated_at AS UpdatedAt
+                   phone AS Phone, password_hash AS PasswordHash, security_stamp AS SecurityStamp,
+                   is_active AS IsActive, created_at AS CreatedAt, updated_at AS UpdatedAt
             FROM users
             WHERE id = @Id";
 
@@ -41,12 +41,19 @@ public class UserRepository : IUserRepository
     public async Task<long> CreateAsync(User user)
     {
         const string sql = @"
-            INSERT INTO users (role, full_name, email, phone, password_hash, is_active)
-            VALUES (@Role, @FullName, @Email, @Phone, @PasswordHash, @IsActive);
+            INSERT INTO users (role, full_name, email, phone, password_hash, security_stamp, is_active)
+            VALUES (@Role, @FullName, @Email, @Phone, @PasswordHash, @SecurityStamp, @IsActive);
             SELECT LAST_INSERT_ID();";
 
         return await _db.ExecuteScalarAsync<long>(sql, user);
     }
 
-    
+    public async Task UpdateSecurityStampAsync(long userId, string securityStamp)
+    {
+        const string sql = @"
+            UPDATE users SET security_stamp = @SecurityStamp, updated_at = CURRENT_TIMESTAMP
+            WHERE id = @UserId";
+
+        await _db.ExecuteAsync(sql, new { UserId = userId, SecurityStamp = securityStamp });
+    }
 }

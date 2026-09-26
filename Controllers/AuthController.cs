@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using MyKicksBuddy.Models.Dtos;
@@ -63,9 +65,17 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("logout")]
-    public IActionResult Logout()
+    [Authorize]
+    public async Task<IActionResult> Logout()
     {
-        // JWT stateless, logout cukup hapus token di sisi client
-        return Ok(new { message = "Logout berhasil. Hapus token di sisi client." });
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(userIdClaim, out var userId))
+            return Unauthorized();
+
+        // Rotasi security stamp: token ini (dan token lain yang pernah diterbitkan
+        // untuk user ini) langsung berhenti valid, bukan cuma dihapus di client.
+        await _authService.InvalidateSessionsAsync(userId);
+
+        return Ok(new { message = "Logout berhasil. Semua sesi untuk akun ini sudah dicabut." });
     }
 }
