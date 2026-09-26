@@ -19,6 +19,7 @@ public class ChatbotController : ControllerBase
     }
 
     [HttpGet("orders/{orderCode}")]
+    [EnableRateLimiting("chatbot")]
     public async Task<IActionResult> GetOrderByCode(string orderCode)
     {
         var detail = await _orderService.GetOrderByCodeAsync(orderCode);

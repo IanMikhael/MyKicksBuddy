@@ -106,12 +106,27 @@ builder.Services.AddAuthentication(options =>
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    // Reverse proxy di depan app ini belum tentu IP-nya tetap/diketahui saat build,
-    // jadi semua upstream dipercaya di sini. Ganti KnownProxies/KnownNetworks dengan
-    // IP proxy production yang sebenarnya begitu itu tetap, supaya header ini tidak
-    // bisa dipalsukan oleh client langsung.
-    options.KnownNetworks.Clear();
-    options.KnownProxies.Clear();
+
+    // IP reverse proxy production diisi lewat config (mis. env var
+    // TrustedProxies__0=156.67.24.112), bukan hardcode di sini, supaya tim yang deploy
+    // bisa mengunci ini tanpa perlu ubah kode. Kalau belum diisi (dev lokal / belum
+    // sempat dikonfigurasi), semua upstream dipercaya - X-Forwarded-For jadi bisa
+    // dipalsukan oleh client langsung, jadi ini WAJIB diisi begitu topologi production
+    // (IP reverse proxy) sudah pasti.
+    var trustedProxies = builder.Configuration.GetSection("TrustedProxies").Get<string[]>() ?? [];
+    if (trustedProxies.Length > 0)
+    {
+        foreach (var proxyIp in trustedProxies)
+        {
+            if (System.Net.IPAddress.TryParse(proxyIp, out var parsed))
+                options.KnownProxies.Add(parsed);
+        }
+    }
+    else
+    {
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+    }
 });
 
 // Rate limiting - batasi percobaan login/register per IP supaya tidak gampang di-brute-force

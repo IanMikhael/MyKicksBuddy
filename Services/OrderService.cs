@@ -169,6 +169,7 @@ public class OrderService : IOrderService
                 Role = "customer",
                 FullName = request.CustomerName,
                 Phone = request.CustomerPhone,
+                SecurityStamp = Guid.NewGuid().ToString("N"),
                 IsActive = true
             };
             customer.PasswordHash = _passwordHasher.HashPassword(customer, Guid.NewGuid().ToString("N"));
@@ -212,6 +213,7 @@ public class OrderService : IOrderService
                 Role = "customer",
                 FullName = request.CustomerName,
                 Phone = request.CustomerPhone,
+                SecurityStamp = Guid.NewGuid().ToString("N"),
                 IsActive = true
             };
             customer.PasswordHash = _passwordHasher.HashPassword(customer, Guid.NewGuid().ToString("N"));
@@ -220,11 +222,8 @@ public class OrderService : IOrderService
             customer.Id = newCustomerId;
         }
 
-        string orderCode = $"MKC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4].ToUpper()}";
-
         var order = new Order
         {
-            OrderCode = orderCode,
             CustomerId = customer.Id,
             Channel = "pos",
             FulfillmentType = "drop_off",
@@ -238,15 +237,29 @@ public class OrderService : IOrderService
             Notes = request.Notes
         };
 
-        var orderId = await _orderRepository.CreateWithItemsAsync(order, request.Items);
-
-        if (request.PaymentMethod == "cash")
+        const int maxAttempts = 3;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            var createdOrder = await _orderRepository.GetByIdAsync(orderId);
-            await _orderRepository.MarkPaidCashAsync(orderId, staffId, createdOrder!.Total);
+            order.OrderCode = GenerateOrderCode();
+            try
+            {
+                var orderId = await _orderRepository.CreateWithItemsAsync(order, request.Items);
+
+                if (request.PaymentMethod == "cash")
+                {
+                    var createdOrder = await _orderRepository.GetByIdAsync(orderId);
+                    await _orderRepository.MarkPaidCashAsync(orderId, staffId, createdOrder!.Total);
+                }
+
+                return (true, null, orderId, customer.Id);
+            }
+            catch (MySqlException ex) when (ex.Number == 1062 && ex.Message.Contains("order_code") && attempt < maxAttempts)
+            {
+                // Tabrakan kode pesanan (kemungkinan sangat kecil) - coba lagi dengan kode baru.
+            }
         }
 
-        return (true, null, orderId, customer.Id);
+        return (false, "Gagal membuat kode pesanan yang unik. Silakan coba lagi.", 0, customer.Id);
     }
 
     public async Task<long?> GetCustomerIdForOrderAsync(long orderId)
