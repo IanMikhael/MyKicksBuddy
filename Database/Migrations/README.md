@@ -1,3 +1,9 @@
+# Database migrations
+
+## 002_add_security_stamp.sql
+
+Apply after `001_create_payments.sql` (or independently - it only touches `users`). Adds `users.security_stamp`, which JWT validation checks on every request to support real token revocation (logout, disabling an account). Running `schema.sql` alone on a fresh database is enough - this migration is only needed to bring an **existing** database that already has a `users` table up to date, since `schema.sql` uses `CREATE TABLE IF NOT EXISTS` and won't alter a table that already exists.
+
 # Midtrans Snap migration and configuration
 
 The existing database schema is not included in this repository. Before applying `001_create_payments.sql`, verify that `orders.id` is a signed `BIGINT` and that `orders` uses InnoDB so the foreign key can be created. Adjust the migration if the live schema differs.

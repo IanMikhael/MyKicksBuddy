@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MyKicksBuddy.Filters;
 using MyKicksBuddy.Models.Dtos;
 using MyKicksBuddy.Services;
@@ -52,7 +53,11 @@ public class ChatbotController : ControllerBase
         return Ok(services);
     }
 
+    // Endpoint ini balikin alamat rumah customer by nomor HP - dibatasi rate-nya
+    // supaya kalau API key n8n bocor, pemakainya tidak bisa dipakai buat "scan"
+    // nomor HP satu-satu dan kumpulin banyak alamat orang sekaligus.
     [HttpGet("customers/addresses")]
+    [EnableRateLimiting("chatbot")]
     public async Task<IActionResult> GetCustomerAddresses([FromQuery] string phone)
     {
         if (string.IsNullOrWhiteSpace(phone))

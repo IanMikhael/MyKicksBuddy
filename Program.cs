@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using MySqlConnector;
@@ -33,10 +34,20 @@ builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddHttpClient<IMidtransSnapClient, MidtransSnapClient>();
 
-// JWT Authentication
-var jwtKey = builder.Configuration["Jwt:SecretKey"]!;
-var jwtIssuer = builder.Configuration["Jwt:Issuer"]!;
-var jwtAudience = builder.Configuration["Jwt:Audience"]!;
+// JWT Authentication - gagal cepat dengan pesan jelas kalau konfigurasi belum benar,
+// daripada NullReferenceException samar atau (lebih buruk) key lemah yang lolos diam-diam.
+var jwtKey = builder.Configuration["Jwt:SecretKey"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+
+if (string.IsNullOrWhiteSpace(jwtKey))
+    throw new InvalidOperationException("Konfigurasi 'Jwt:SecretKey' belum diatur.");
+if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+    throw new InvalidOperationException("'Jwt:SecretKey' terlalu pendek - minimal 32 karakter (256-bit) untuk HMAC-SHA256.");
+if (string.IsNullOrWhiteSpace(jwtIssuer))
+    throw new InvalidOperationException("Konfigurasi 'Jwt:Issuer' belum diatur.");
+if (string.IsNullOrWhiteSpace(jwtAudience))
+    throw new InvalidOperationException("Konfigurasi 'Jwt:Audience' belum diatur.");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -66,6 +77,7 @@ builder.Services.AddAuthentication(options =>
         {
             var userIdClaim = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
             var tokenStamp = context.Principal?.FindFirstValue(JwtService.SecurityStampClaimType);
+            var tokenRole = context.Principal?.FindFirstValue(ClaimTypes.Role);
 
             if (!long.TryParse(userIdClaim, out var userId) || string.IsNullOrEmpty(tokenStamp))
             {
@@ -76,12 +88,30 @@ builder.Services.AddAuthentication(options =>
             var userRepository = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
             var user = await userRepository.GetByIdAsync(userId);
 
-            if (user is null || !user.IsActive || user.SecurityStamp != tokenStamp)
+            // Stamp beda -> token sudah dicabut (logout/nonaktif). Role beda -> role user
+            // sudah diubah manual di DB sejak token ini diterbitkan (mis. kasir diturunkan
+            // jadi customer); token lama tidak boleh terus jalan dengan role lama itu.
+            if (user is null || !user.IsActive || user.SecurityStamp != tokenStamp ||
+                !string.Equals(user.Role, tokenRole, StringComparison.OrdinalIgnoreCase))
             {
                 context.Fail("Sesi tidak lagi berlaku. Silakan login ulang.");
             }
         }
     };
+});
+
+// Di belakang reverse proxy (Nginx/VPS), RemoteIpAddress cuma balikin IP proxy-nya
+// buat semua orang kalau header X-Forwarded-For tidak dipercaya - efeknya rate limit
+// per-IP di bawah ini jadi dibagi rame-rame satu ember buat seluruh pengguna.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Reverse proxy di depan app ini belum tentu IP-nya tetap/diketahui saat build,
+    // jadi semua upstream dipercaya di sini. Ganti KnownProxies/KnownNetworks dengan
+    // IP proxy production yang sebenarnya begitu itu tetap, supaya header ini tidak
+    // bisa dipalsukan oleh client langsung.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 // Rate limiting - batasi percobaan login/register per IP supaya tidak gampang di-brute-force
@@ -98,9 +128,24 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+
+    options.AddPolicy("chatbot", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
 });
 
 var app = builder.Build();
+
+// Harus di paling awal pipeline - request lain (HTTPS redirect, rate limiter per-IP,
+// auth) perlu IP/skema asli klien, bukan punya reverse proxy, dan itu cuma diperbaiki
+// kalau middleware ini jalan duluan.
+app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
