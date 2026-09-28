@@ -11,8 +11,6 @@ using MySqlConnector;
 using MyKicksBuddy.Repositories;
 using MyKicksBuddy.Services;
 
-const string AuthCookieName = "access_token";
-
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("Default");
@@ -115,7 +113,7 @@ builder.Services.AddAuthentication(options =>
         OnMessageReceived = context =>
         {
             if (string.IsNullOrEmpty(context.Token) &&
-                context.Request.Cookies.TryGetValue(AuthCookieName, out var cookieToken))
+                context.Request.Cookies.TryGetValue(JwtService.CookieName, out var cookieToken))
             {
                 context.Token = cookieToken;
             }

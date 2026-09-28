@@ -548,3 +548,6 @@ codex-*
 *codex-build*
 *codex-runtime*
 
+# Claude session scratch files
+scratchpad/
+
