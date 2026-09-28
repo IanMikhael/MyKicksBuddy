@@ -48,6 +48,7 @@ public class ChatbotController : ControllerBase
     }
 
     [HttpGet("services")]
+    [EnableRateLimiting("chatbot")]
     public async Task<IActionResult> GetServices()
     {
         var services = await _orderService.GetAllServiceDtosAsync();
@@ -69,6 +70,7 @@ public class ChatbotController : ControllerBase
     }
 
     [HttpPost("orders")]
+    [EnableRateLimiting("chatbot")]
     public async Task<IActionResult> CreateOrder([FromBody] CreateChatbotOrderRequest request)
     {
         if (!ModelState.IsValid)
@@ -88,6 +90,7 @@ public class ChatbotController : ControllerBase
     }
 
     [HttpPost("estimate")]
+    [EnableRateLimiting("chatbot")]
     public async Task<IActionResult> GetEstimation([FromBody] EstimateRequest request)
     {
         if (request?.Items == null || !request.Items.Any())
