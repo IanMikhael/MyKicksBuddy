@@ -1,0 +1,33 @@
+@model IEnumerable<MyKicksBuddy.Models.Dtos.OrderResponse>
+@using System.Globalization
+@using MyKicksBuddy.Services
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Riwayat Pesanan";
+    var orders = Model.ToList();
+}
+
+<div class="customer-container customer-workspace history-page">
+    <a class="workspace-back" asp-controller="Customer" asp-action="Index">← Kembali ke beranda</a>
+    @if (orders.Count == 0)
+    {
+        <header class="workspace-heading history-intro"><div><p class="workspace-eyebrow">PESANAN SAYA</p><h1>Riwayat perawatan</h1><p>Pantau pesanan aktif, selesai, dan dibatalkan dari data transaksi akun Anda.</p></div><a class="workspace-primary-action" asp-action="Create">Buat Pesanan</a></header>
+        <section class="workspace-empty history-empty"><span class="history-empty-icon"><img src="~/images/customer/figma/shortcut-history.svg" alt="" /></span><h2>Belum ada pesanan</h2><p>Saat Anda membuat pesanan, detail dan perkembangan perawatannya akan muncul di sini.</p><a class="workspace-primary-action" asp-action="Create">Buat Pesanan Baru</a></section>
+    }
+    else
+    {
+        <header class="workspace-heading history-intro"><div><p class="workspace-eyebrow">PESANAN SAYA</p><h1>Daftar Riwayat</h1><p>Lihat kembali pesanan perawatan sepatumu.</p></div><span class="history-count">@orders.Count Pesanan</span></header>
+        <div class="history-search"><img src="~/images/customer/figma/shortcut-track.svg" alt="" /><input type="search" data-history-search aria-label="Cari pesanan" placeholder="Cari kode atau layanan..." /></div>
+        <div class="history-filters" role="group" aria-label="Filter riwayat"><button type="button" data-history-filter="all" aria-pressed="true" class="is-active">Semua</button><button type="button" data-history-filter="active" aria-pressed="false">Berjalan</button><button type="button" data-history-filter="completed" aria-pressed="false">Selesai</button><button type="button" data-history-filter="cancelled" aria-pressed="false">Dibatalkan</button></div>
+        <div class="history-results">
+            @foreach (var order in orders)
+            {
+                var serviceName = order.ServiceName ?? "Pesanan perawatan";
+                var tone = order.HistoryGroup == "completed" ? "is-success" : order.HistoryGroup == "cancelled" ? "is-danger" : "";
+                var searchText = (order.OrderCode + " " + serviceName).ToLowerInvariant();
+                <a class="order-history-card" asp-action="Detail" asp-route-id="@order.Id" data-history-card data-history-group="@order.HistoryGroup" data-history-search="@searchText"><span class="order-history-icon" aria-hidden="true"><img src="~/images/customer/figma/recent-order.svg" alt="" /></span><span class="order-history-main"><strong>@serviceName</strong><small>@order.OrderCode · @order.CreatedAt.ToString("dd MMM yyyy", CultureInfo.GetCultureInfo("id-ID"))</small><em>@(order.HistoryGroup == "completed" ? "Perawatan selesai" : order.HistoryGroup == "cancelled" ? "Pesanan dibatalkan" : "Lacak progres pengerjaan")</em></span><span class="order-history-meta"><b class="customer-status-badge @tone">@order.StatusLabel</b></span><span class="order-history-chevron" aria-hidden="true">›</span></a>
+            }
+        </div>
+        <div class="workspace-empty compact" data-history-no-results hidden><h2>Tidak ada pesanan yang cocok</h2><p>Coba kata kunci atau filter lain.</p></div>
+    }
+</div>

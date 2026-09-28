@@ -1,0 +1,22 @@
+@model MyKicksBuddy.Models.Dtos.LoginRequest
+@{
+    Layout = null;
+    ViewData["Title"] = "Masuk Staff";
+}
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>Masuk Staff - MyKicksBuddy</title><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" /><link rel="stylesheet" href="~/css/staff.css" asp-append-version="true" /></head>
+<body class="staff-login-body">
+    <main class="staff-login-card">
+        <div class="staff-login-brand"><span class="staff-brand-icon"><img src="~/images/staff/figma/logo.svg" alt="" /></span><small>MYKICKSBUDDY</small><h1>Masuk sebagai Staff</h1><p>Akses portal operasional pesanan dan kasir MyKicksBuddy</p></div>
+        <form action="/auth/login" method="post" data-auth-form="login" data-customer-url="@Url.Action("Index", "Customer")" data-staff-url="@Url.Action("Index", "Staff")" data-admin-url="@Url.Action("Index", "Admin")" novalidate>
+            @Html.AntiForgeryToken()
+            <div class="staff-login-error" role="alert" aria-live="polite" data-form-alert hidden></div>
+            <label class="staff-login-field">Email atau nomor ponsel <span><img src="~/images/staff/figma/user.svg" alt="" /><input name="EmailOrPhone" type="text" autocomplete="username" placeholder="Masukkan email atau nomor ponsel" required /></span><small data-error-for="EmailOrPhone"></small></label>
+            <label class="staff-login-field">Password <span><img src="~/images/staff/figma/lock.svg" alt="" /><input id="StaffPassword" name="Password" type="password" autocomplete="current-password" placeholder="Masukkan password" required /><button type="button" data-password-toggle="StaffPassword" aria-label="Tampilkan kata sandi" aria-pressed="false"><img src="~/images/staff/figma/eye.svg" alt="" /></button></span><small data-error-for="Password"></small></label>
+            <button class="staff-btn staff-btn-primary staff-login-submit" type="submit" data-submit-button><span data-submit-label>Masuk</span></button>
+        </form>
+        <a class="staff-login-back" asp-controller="Home" asp-action="Index">← Kembali ke beranda</a>
+        <p class="staff-login-note">Khusus akses staff dan kasir berwenang.</p>
+    </main>
+    <script src="~/js/auth.js" asp-append-version="true"></script>
+</body></html>

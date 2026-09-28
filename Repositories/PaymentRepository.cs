@@ -272,18 +272,18 @@ public sealed class PaymentRepository : IPaymentRepository
 
                 await _db.ExecuteAsync(updateOrderPaymentSql, new { payment.OrderId }, transaction);
 
-                const string confirmOrderSql = @"
+                const string advanceOrderSql = @"
                     UPDATE orders
-                    SET status = 'confirmed', updated_at = CURRENT_TIMESTAMP
+                    SET status = 'waiting_approval', updated_at = CURRENT_TIMESTAMP
                     WHERE id = @OrderId AND status = 'pending_payment'";
 
-                var confirmedRows = await _db.ExecuteAsync(confirmOrderSql, new { payment.OrderId }, transaction);
+                var advancedRows = await _db.ExecuteAsync(advanceOrderSql, new { payment.OrderId }, transaction);
 
-                if (confirmedRows == 1)
+                if (advancedRows == 1)
                 {
                     const string insertLogSql = @"
                         INSERT INTO order_status_log (order_id, status, note, changed_by, created_at)
-                        VALUES (@OrderId, 'confirmed', 'Pembayaran dikonfirmasi otomatis oleh sistem (Midtrans).', NULL, CURRENT_TIMESTAMP);";
+                        VALUES (@OrderId, 'waiting_approval', 'Pembayaran berhasil diterima dan pesanan menunggu persetujuan staf.', NULL, CURRENT_TIMESTAMP);";
 
                     await _db.ExecuteAsync(insertLogSql, new { payment.OrderId }, transaction);
                 }

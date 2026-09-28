@@ -2,7 +2,7 @@ namespace MyKicksBuddy.Models.Dtos;
 
 public class OrderItemDto
 {
-    public long Id { get; set; }
+    public long ItemId { get; set; }
     public long ServiceId { get; set; }
     public string? ServiceName { get; set; }
     public int Quantity { get; set; }

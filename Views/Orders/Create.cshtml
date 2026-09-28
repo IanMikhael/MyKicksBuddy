@@ -1,0 +1,121 @@
+@model MyKicksBuddy.Models.Dtos.CreateOrderFormModel
+@using System.Globalization
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Buat Pesanan";
+}
+
+<div class="customer-container customer-workspace order-create-page">
+    <header class="workspace-heading">
+        <div>
+            <a class="workspace-back" asp-controller="Customer" asp-action="Index">← Kembali ke beranda</a>
+            <p class="workspace-eyebrow">PROSES CHECKOUT</p>
+            <h1>Buat Pesanan Baru</h1>
+            <p>Pilih layanan dan lengkapi detail sepatu sebelum membuat pesanan.</p>
+        </div>
+        <div class="order-flow-steps" aria-label="Langkah pesanan"><span class="is-done">1&nbsp; Pilih Layanan</span><span class="is-active">2&nbsp; Detail &amp; Penjemputan</span></div>
+    </header>
+
+    <form class="order-form" asp-action="Create" method="post" data-order-form>
+        <div asp-validation-summary="ModelOnly" class="workspace-validation" role="alert"></div>
+
+        <section class="order-form-section">
+            <div class="order-step-heading"><span>1</span><div><h2>Pilih Layanan</h2><p>Pilih jenis perawatan sepatu sesuai kebutuhanmu.</p></div></div>
+            @if (Model.Services.Count == 0)
+            {
+                <div class="workspace-empty compact"><h3>Layanan belum tersedia</h3><p>Belum ada layanan aktif di database. Hubungi tim MyKicksBuddy untuk informasi lebih lanjut.</p></div>
+            }
+            else
+            {
+                <div class="order-service-grid">
+                    @foreach (var service in Model.Services)
+                    {
+                        <label class="order-service-option">
+                            <input asp-for="ServiceId" type="radio" value="@service.Id" data-service-price="@service.Price.ToString(CultureInfo.InvariantCulture)" data-service-name="@service.Name" />
+                            <span class="order-service-card">
+                                <span class="order-service-image"><img src="~/images/customer/figma/service-shoe.svg" alt="" /></span>
+                                <strong>@service.Name</strong>
+                                <small>@(string.IsNullOrWhiteSpace(service.Description) ? "Deskripsi layanan belum tersedia." : service.Description)</small>
+                                @if (service.EstimatedDurationDays.HasValue) { <em>Estimasi @service.EstimatedDurationDays hari</em> }
+                                <b>@service.Price.ToString("C0", CultureInfo.GetCultureInfo("id-ID"))</b>
+                            </span>
+                        </label>
+                    }
+                </div>
+            }
+            <span asp-validation-for="ServiceId" class="workspace-field-error"></span>
+        </section>
+
+        <section class="order-form-section">
+            <div class="order-step-heading"><span>2</span><div><h2>Detail Sepatu</h2><p>Bantu tim mengenali sepatu dan kebutuhanmu.</p></div></div>
+            <div class="workspace-field-grid">
+                <div class="workspace-field">
+                    <label asp-for="Quantity">Jumlah sepatu</label>
+                    <input asp-for="Quantity" type="number" min="1" max="20" data-order-quantity />
+                    <span asp-validation-for="Quantity"></span>
+                </div>
+                <div class="workspace-field">
+                    <label asp-for="ShoeDescription">Detail sepatu</label>
+                    <input asp-for="ShoeDescription" placeholder="Contoh: sneakers putih, bahan kulit" />
+                    <span asp-validation-for="ShoeDescription"></span>
+                </div>
+            </div>
+            <div class="workspace-field">
+                <label asp-for="Notes">Catatan <span>(opsional)</span></label>
+                <textarea asp-for="Notes" rows="3" placeholder="Noda atau bagian yang perlu perhatian khusus"></textarea>
+                <span asp-validation-for="Notes"></span>
+            </div>
+        </section>
+
+        <section class="order-form-section">
+            <div class="order-step-heading"><span>3</span><div><h2>Pilih Penyerahan</h2><p>Antar-jemput tersedia dalam radius 5 km.</p></div></div>
+            <div class="fulfillment-options">
+                <label><input asp-for="FulfillmentType" type="radio" value="drop_off" data-fulfillment /><span><strong>Drop off</strong><small>Antar sepatu langsung ke MyKicksBuddy.</small></span></label>
+                <label><input asp-for="FulfillmentType" type="radio" value="pickup_delivery" data-fulfillment /><span><strong>Pickup & delivery</strong><small>Kami jemput dan antar kembali dalam radius layanan.</small></span></label>
+            </div>
+            <span asp-validation-for="FulfillmentType" class="workspace-field-error"></span>
+
+            <div class="pickup-addresses" data-pickup-addresses hidden>
+                <div class="pickup-address-heading"><strong>Pilih alamat pickup</strong><a asp-controller="Addresses" asp-action="Create">Tambah alamat</a></div>
+                @if (Model.Addresses.Count == 0)
+                {
+                    <div class="workspace-info">Belum ada alamat. Tambahkan alamat terlebih dahulu atau pilih drop off.</div>
+                }
+                else
+                {
+                    @foreach (var address in Model.Addresses)
+                    {
+                        <label class="pickup-address-option @(address.IsWithinRadius ? null : "is-disabled")">
+                            @if (address.IsWithinRadius)
+                            {
+                                <input asp-for="AddressId" type="radio" value="@address.Id" />
+                            }
+                            else
+                            {
+                                <input type="radio" name="UnavailableAddress" value="@address.Id" disabled />
+                            }
+                            <span><strong>@address.Label @(address.IsDefault ? "· Utama" : null)</strong><small>@address.FullAddress</small><em>@address.DistanceKm.ToString("0.##") km · @(address.IsWithinRadius ? "Dalam jangkauan" : "Di luar radius")</em></span>
+                        </label>
+                    }
+                }
+                <span asp-validation-for="AddressId" class="workspace-field-error"></span>
+            </div>
+        </section>
+
+        <aside class="order-summary" aria-live="polite">
+            <h2>Ringkasan Pesanan</h2>
+            <div><span>Layanan</span><strong data-summary-service>Belum dipilih</strong></div>
+            <div><span>Jumlah</span><strong data-summary-quantity>@Model.Quantity pasang</strong></div>
+            <div><span>Subtotal</span><strong data-summary-subtotal>Rp0</strong></div>
+            <div><span>Biaya Antar-Jemput</span><strong>Gratis</strong></div>
+            <div class="order-summary-total"><span>Total Pembayaran</span><strong data-summary-total>Rp0</strong></div>
+            <p>Total ini adalah pratinjau. Server mengambil harga layanan terbaru dari database saat pesanan dibuat.</p>
+            <button class="workspace-primary-action" type="submit" disabled>Buat Pesanan →</button>
+        </aside>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/order-create.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,66 @@
+@model MyKicksBuddy.Models.Dtos.OrderDetailPageViewModel
+@using System.Globalization
+@using MyKicksBuddy.Services
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Status Pesanan";
+    var order = Model.Order;
+    var culture = CultureInfo.GetCultureInfo("id-ID");
+    var label = order.StatusLabel;
+    var firstItem = order.Items.FirstOrDefault();
+    var tone = order.Status == OrderStatusWorkflow.Completed ? "is-success" : order.Status == OrderStatusWorkflow.Cancelled ? "is-danger" : "";
+    var stepIndex = order.ProgressStage;
+    var stepNames = new[] { "Pesanan Dibuat", order.FulfillmentType == "drop_off" ? "Diterima" : "Dijemput", "Sedang Diproses", "Selesai" };
+    var stepStatuses = new[] { OrderStatusWorkflow.PendingPayment, OrderStatusWorkflow.PickedUp, OrderStatusWorkflow.InProcess, OrderStatusWorkflow.Completed };
+    var currentDescription = order.ProgressDescription;
+}
+
+<div class="customer-container customer-workspace status-page">
+    <a class="workspace-back" asp-action="History">← Kembali ke riwayat</a>
+    <div class="status-breadcrumb">Pesanan / <strong>@order.OrderCode</strong></div>
+
+    <header class="status-order-summary">
+        <span class="order-detail-status-icon"><img src="~/images/customer/figma/active-order-shoe.svg" alt="" /></span>
+        <div><p>@(order.HistoryGroup == "active" ? "PESANAN AKTIF" : "RIWAYAT PESANAN")</p><h1>@(firstItem?.ServiceName ?? "Pesanan perawatan")</h1><small>@order.OrderCode · @order.CreatedAt.ToString("dd MMM yyyy, HH:mm", culture)</small></div>
+        <span class="customer-status-badge @tone">@label</span>
+    </header>
+
+    @if (order.Status == OrderStatusWorkflow.PendingPayment)
+    {
+        <div class="workspace-info">Pesanan tersimpan, tetapi pembayaran online belum terintegrasi. Pembayaran belum diverifikasi.</div>
+    }
+
+    <div class="status-content-grid">
+        <div class="status-main-column">
+            <section class="status-current-panel"><p>STATUS SAAT INI</p><h2>@label</h2><span>@currentDescription</span></section>
+            <section class="order-detail-card status-progress-card">
+                <div class="status-card-title"><div><h2>Progres Pengerjaan Sepatu</h2><p>Pantau langkah perawatan dari data status pesanan.</p></div></div>
+                <ol class="status-steps">
+                    @for (var index = 0; index < stepNames.Length; index++)
+                    {
+                        var step = index;
+                        var log = Model.Logs.FirstOrDefault(x => x.Status == stepStatuses[step]);
+                        var isDone = order.Status == OrderStatusWorkflow.Completed || (order.Status != OrderStatusWorkflow.Cancelled && step < stepIndex);
+                        var isCurrent = order.Status != OrderStatusWorkflow.Cancelled && order.Status != OrderStatusWorkflow.Completed && step == stepIndex;
+                        <li class="@(isDone ? "is-done" : isCurrent ? "is-current" : "is-future")">
+                            <span class="status-step-marker">@(isDone ? "✓" : (index + 1).ToString("00"))</span>
+                            <div><strong>@stepNames[index]</strong><p>@(index == 0 ? "Pesanan telah dicatat dalam sistem." : index == 1 ? "Sepatu menuju tim perawatan." : index == 2 ? "Sepatu sedang dalam proses perawatan." : "Sepatu telah selesai dirawat.")</p></div>
+                            @if (log is not null) { <time>@log.CreatedAt.ToString("dd MMM yyyy, HH:mm", culture)</time> }
+                            else if (index == 0) { <time>@order.CreatedAt.ToString("dd MMM yyyy, HH:mm", culture)</time> }
+                        </li>
+                    }
+                </ol>
+            </section>
+            @if (order.Status == OrderStatusWorkflow.Cancelled)
+            {
+                <div class="workspace-info is-cancelled">Pesanan ini dibatalkan. Detail pembatalan hanya ditampilkan jika dicatat oleh sistem.</div>
+            }
+        </div>
+
+        <div class="status-side-column">
+            <section class="order-detail-card status-details"><h2>Detail Pesanan</h2><dl><div><dt>Layanan</dt><dd>@(firstItem?.ServiceName ?? "—")</dd></div><div><dt>Jumlah</dt><dd>@(firstItem is null ? "—" : firstItem.Quantity.ToString() + " pasang")</dd></div><div><dt>Penyerahan</dt><dd>@(order.FulfillmentType == "pickup_delivery" ? "Antar-jemput" : "Drop off")</dd></div>@if (!string.IsNullOrWhiteSpace(order.FullAddress)) { <div><dt>Alamat Penjemputan</dt><dd>@order.FullAddress</dd></div> }<div><dt>Metode Pembayaran</dt><dd>Belum tersedia</dd></div><div><dt>Status Pembayaran</dt><dd>@PaymentStatusWorkflow.Label(order.PaymentStatus)</dd></div><div><dt>Subtotal</dt><dd>@order.Subtotal.ToString("C0", culture)</dd></div><div class="is-total"><dt>Total</dt><dd>@order.TotalAmount.ToString("C0", culture)</dd></div></dl></section>
+            <details class="order-detail-card status-shoe-details"><summary>Detail Sepatu</summary>@foreach (var item in order.Items) { <div><strong>@(item.ServiceName ?? "Layanan")</strong><p>@(item.ShoeDescription ?? "Detail belum tersedia.")</p></div> }</details>
+            <section class="order-detail-card status-help"><h2>Butuh bantuan pesanan ini?</h2><p>Lihat informasi layanan dan pesanan di pusat bantuan.</p><button type="button" class="workspace-secondary-action" data-open-support>Buka Bantuan</button></section>
+        </div>
+    </div>
+</div>

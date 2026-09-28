@@ -11,6 +11,11 @@ public class JwtService : IJwtService
     // Dipakai bareng Program.cs (OnTokenValidated) buat cocokkan token vs stamp terbaru di DB.
     public const string SecurityStampClaimType = "sstamp";
 
+    // Nama cookie HttpOnly tempat token ini dititipkan buat browser (lihat Program.cs
+    // OnMessageReceived dan AuthController.SetAuthCookie) - satu konstanta dipakai bareng
+    // supaya nggak ketik ulang string "access_token" di beberapa tempat.
+    public const string CookieName = "access_token";
+
     private readonly IConfiguration _configuration;
 
     public JwtService(IConfiguration configuration)

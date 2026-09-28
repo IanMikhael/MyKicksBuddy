@@ -50,7 +50,7 @@ public class ChatbotController : ControllerBase
     [HttpGet("services")]
     public async Task<IActionResult> GetServices()
     {
-        var services = await _orderService.GetAllServicesAsync();
+        var services = await _orderService.GetAllServiceDtosAsync();
         return Ok(services);
     }
 
@@ -93,7 +93,7 @@ public class ChatbotController : ControllerBase
         if (request?.Items == null || !request.Items.Any())
             return BadRequest(new { message = "Item layanan tidak boleh kosong." });
 
-        var allServices = await _orderService.GetAllServicesAsync();
+        var allServices = await _orderService.GetAllServiceDtosAsync();
         var serviceMap = allServices.ToDictionary(s => s.Id);
 
         decimal totalPrice = 0;

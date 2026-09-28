@@ -7,7 +7,7 @@ using System.Security.Claims;
 namespace MyKicksBuddy.Controllers;
 
 [ApiController]
-[Route("staff/orders")]
+[Route("api/staff/orders")]
 [Authorize(Roles = "kasir,admin")] // Dilindungi agar hanya bisa diakses oleh kasir dan admin
 public class StaffOrdersController : ControllerBase
 {
@@ -18,7 +18,6 @@ public class StaffOrdersController : ControllerBase
         _orderService = orderService;
     }
 
-    // Helper untuk mengambil ID staff/admin yang sedang login dari token JWT
     private long? GetStaffId()
     {
         var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
@@ -37,7 +36,10 @@ public class StaffOrdersController : ControllerBase
 
         try
         {
-            await _orderService.UpdateOrderStatusWithLogAsync(id, request.Status, staffId.Value, request.Notes);
+            var staffRole = User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
+            var result = await _orderService.UpdateStatusAsync(id, request.Status, staffId.Value, staffRole, request.Notes);
+            if (!result.Success)
+                return BadRequest(new { message = result.Error });
             return Ok(new { message = "Status pesanan berhasil diperbarui dan dicatat dalam log." });
         }
         catch (Exception ex)

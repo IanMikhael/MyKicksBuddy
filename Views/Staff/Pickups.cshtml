@@ -1,0 +1,18 @@
+@model MyKicksBuddy.Models.Dtos.StaffOrdersPageViewModel
+@using MyKicksBuddy.Services
+@{
+    Layout = "_StaffLayout";
+    ViewData["Title"] = "Manajemen Penjemputan";
+    ViewData["StaffSection"] = "pickups";
+}
+<div class="staff-page-heading"><div><p class="staff-kicker">OPERASIONAL LOGISTIK</p><h1 class="staff-page-title">Manajemen Penjemputan</h1><p class="staff-page-intro">Pesanan antar-jemput yang berada pada tahap persiapan, menunggu, atau sudah dijemput.</p></div><span class="staff-badge">@Model.Total pesanan</span></div>
+<form class="staff-toolbar staff-card" method="get" asp-action="Pickups"><input class="staff-input" name="q" value="@Model.Query" type="search" maxlength="80" placeholder="Cari kode pesanan atau nama pelanggan..." aria-label="Cari penjemputan" /><button class="staff-btn staff-btn-primary" type="submit">Cari</button><a class="staff-btn staff-btn-neutral" asp-action="Pickups">Reset</a></form>
+@if (!Model.Orders.Any())
+{
+    <section class="staff-card staff-empty"><span class="staff-empty-icon"><img src="~/images/staff/figma/pickup.svg" alt="" /></span><h2>Belum ada penjemputan</h2><p>Pesanan antar-jemput yang memenuhi tahap operasional akan muncul di sini. Jadwal dan kurir belum tersedia di backend.</p></section>
+}
+else
+{
+    <div class="staff-pickup-grid">@foreach (var order in Model.Orders) { var initials = string.Concat(order.CustomerName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => x[0])).ToUpperInvariant(); <article class="staff-card staff-pickup-card"><div class="staff-pickup-card-head"><strong>@order.OrderCode</strong><span class="staff-badge">@OrderStatusWorkflow.Label(order.Status)</span></div><div class="staff-pickup-person"><span class="staff-avatar">@initials</span><span><strong>@order.CustomerName</strong><small>@(order.ServiceName ?? "Layanan perawatan")</small></span></div><div class="staff-pickup-address"><small>ALAMAT PENJEMPUTAN</small>@(order.FullAddress ?? "Alamat belum tersedia")</div><div class="staff-pickup-card-foot"><span>Jadwal belum tersedia</span><a class="staff-btn staff-btn-primary" asp-action="Detail" asp-route-id="@order.Id">Lihat Detail Pesanan →</a></div></article> }</div>
+    @if (Model.TotalPages > 1) { <nav class="staff-pagination"><span>Halaman @Model.Page dari @Model.TotalPages</span>@if (Model.Page > 1) { <a asp-action="Pickups" asp-route-q="@Model.Query" asp-route-page="@(Model.Page - 1)">Sebelumnya</a> }@if (Model.Page < Model.TotalPages) { <a asp-action="Pickups" asp-route-q="@Model.Query" asp-route-page="@(Model.Page + 1)">Berikutnya</a> }</nav> }
+}

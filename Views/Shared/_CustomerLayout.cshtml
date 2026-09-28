@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Kelola perawatan sepatu dan pesanan MyKicksBuddy." />
+    <title>@ViewData["Title"] - MyKicksBuddy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/customer.css" asp-append-version="true" />
+</head>
+<body class="customer-page">
+    @await Html.PartialAsync("_CustomerHeader")
+    <main class="customer-main">@RenderBody()</main>
+    <dialog class="customer-help-dialog" data-help-dialog aria-label="Pusat bantuan MyKicksBuddy">
+        <div class="customer-help-head"><strong>Pusat Bantuan</strong><button type="button" data-close-support aria-label="Tutup bantuan">×</button></div>
+        <p>Pilih informasi yang ingin Anda lihat. Percakapan langsung belum tersedia di area customer.</p>
+        <a asp-controller="Orders" asp-action="History">Lacak pesanan saya</a>
+        <a asp-controller="Addresses" asp-action="Index">Kelola alamat penjemputan</a>
+        <a asp-controller="Customer" asp-action="Index" asp-fragment="layanan">Lihat layanan</a>
+    </dialog>
+
+    <script src="~/js/customer.js" asp-append-version="true"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

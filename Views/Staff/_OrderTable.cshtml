@@ -1,0 +1,23 @@
+@model MyKicksBuddy.Models.Dtos.StaffOrdersPageViewModel
+@using MyKicksBuddy.Services
+@using System.Globalization
+@{
+    var culture = CultureInfo.GetCultureInfo("id-ID");
+}
+<div class="staff-card">
+    <div class="staff-section-head"><h2>Daftar Antrean Unit Masuk</h2><span class="staff-dim">@Model.Total pesanan</span></div>
+    @if (!Model.Orders.Any())
+    {
+        <div class="staff-empty"><span class="staff-empty-icon"><img src="~/images/staff/figma/orders.svg" alt="" /></span><h2>Tidak ada pesanan yang cocok</h2><p>@(Model.Total == 0 && Model.Query is null && Model.Status is null && Model.PaymentStatus is null ? "Belum ada transaksi pelanggan pada sistem." : "Coba ubah pencarian atau filter status untuk melihat pesanan lain.")</p></div>
+    }
+    else
+    {
+        <div class="staff-table-wrap"><table class="staff-table"><thead><tr><th>KODE PESANAN</th><th>PELANGGAN</th><th>LAYANAN</th><th>STATUS PESANAN</th><th>PEMBAYARAN</th><th>DIBUAT</th><th></th></tr></thead><tbody>
+            @foreach (var order in Model.Orders)
+            {
+                <tr><td><a class="staff-row-link" asp-action="Detail" asp-route-id="@order.Id">@order.OrderCode</a></td><td>@order.CustomerName</td><td>@(order.ServiceName ?? "—")</td><td><span class="staff-badge">@OrderStatusWorkflow.DisplayLabel(order.Status, order.PaymentStatus)</span></td><td><span class="staff-badge @StaffPaymentPresentation.Tone(order.PaymentStatus)">@StaffPaymentPresentation.Label(order.PaymentStatus, false)</span></td><td>@order.CreatedAt.ToString("dd MMM yy, HH:mm", culture)</td><td><a class="staff-link" asp-action="Detail" asp-route-id="@order.Id">Detail →</a></td></tr>
+            }
+        </tbody></table></div>
+        @if (Model.TotalPages > 1) { <nav class="staff-pagination" aria-label="Halaman pesanan"><span>Halaman @Model.Page dari @Model.TotalPages</span>@if (Model.Page > 1) { <a asp-action="@(Model.IsPickup ? "Pickups" : "Orders")" asp-route-q="@Model.Query" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-page="@(Model.Page - 1)">Sebelumnya</a> }@if (Model.Page < Model.TotalPages) { <a asp-action="@(Model.IsPickup ? "Pickups" : "Orders")" asp-route-q="@Model.Query" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-page="@(Model.Page + 1)">Berikutnya</a> }</nav> }
+    }
+</div>

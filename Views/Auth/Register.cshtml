@@ -1,0 +1,79 @@
+@model MyKicksBuddy.Models.Dtos.RegisterRequest
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Daftar";
+}
+
+<section class="auth-shell auth-shell-register" aria-labelledby="registerTitle">
+    <div class="auth-intro auth-visual auth-visual-register">
+        <div class="auth-visual-copy">
+            <p class="auth-eyebrow">MULAI BERSAMA MYKICKSBUDDY</p>
+            <h1 id="registerTitle">Buat akunmu</h1>
+            <p>Daftar untuk membuat pesanan dan memantau perawatan sepatu dengan lebih mudah.</p>
+        </div>
+        <figure class="auth-shoe-stage" aria-hidden="true">
+            <img class="auth-shoe-image" src="~/images/landing/hero-shoe-front.png" alt="" />
+        </figure>
+    </div>
+
+    <form class="auth-form" action="/auth/register" method="post" data-auth-form="register" data-customer-url="@Url.Action("Index", "Customer")" novalidate>
+        @Html.AntiForgeryToken()
+        <div class="auth-form-heading">
+            <h2>Buat akun</h2>
+            <p>Lengkapi informasi berikut untuk memulai.</p>
+        </div>
+        <div class="auth-alert" role="alert" aria-live="polite" data-form-alert hidden></div>
+
+        <div class="auth-field">
+            <label for="FullName">Nama lengkap</label>
+            <input id="FullName" name="FullName" type="text" autocomplete="name" required aria-describedby="FullNameError" />
+            <span class="auth-field-error" id="FullNameError" data-error-for="FullName"></span>
+        </div>
+
+        <div class="auth-field-grid">
+            <div class="auth-field">
+                <label for="Email">Email <span>(opsional)</span></label>
+                <input id="Email" name="Email" type="email" inputmode="email" autocomplete="email" aria-describedby="EmailError ContactError" />
+                <span class="auth-field-error" id="EmailError" data-error-for="Email"></span>
+            </div>
+            <div class="auth-field">
+                <label for="Phone">Nomor ponsel <span>(opsional)</span></label>
+                <input id="Phone" name="Phone" type="tel" inputmode="tel" autocomplete="tel" aria-describedby="PhoneError ContactError" />
+                <span class="auth-field-error" id="PhoneError" data-error-for="Phone"></span>
+            </div>
+        </div>
+        <p class="auth-field-hint" id="ContactError" data-contact-error>Isi minimal salah satu: email atau nomor ponsel.</p>
+
+        <div class="auth-field-grid">
+            <div class="auth-field">
+                <label for="RegisterPassword">Password</label>
+                <div class="password-control">
+                    <input id="RegisterPassword" name="Password" type="password" minlength="6" autocomplete="new-password" required aria-describedby="RegisterPasswordError" />
+                    <button type="button" class="password-toggle" data-password-toggle="RegisterPassword" aria-label="Tampilkan kata sandi" aria-pressed="false">
+                        <svg class="eye-open" aria-hidden="true" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                        <svg class="eye-closed" aria-hidden="true" viewBox="0 0 24 24"><path d="m3 3 18 18M10.6 6.2A10 10 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-2.1 2.7M6.2 6.2C3.8 8 2.5 12 2.5 12s3.5 6 9.5 6a10 10 0 0 0 3-.5M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                    </button>
+                </div>
+                <span class="auth-field-error" id="RegisterPasswordError" data-error-for="Password"></span>
+            </div>
+            <div class="auth-field">
+                <label for="ConfirmPassword">Konfirmasi password</label>
+                <div class="password-control">
+                    <input id="ConfirmPassword" type="password" minlength="6" autocomplete="new-password" required aria-describedby="ConfirmPasswordError" />
+                    <button type="button" class="password-toggle" data-password-toggle="ConfirmPassword" aria-label="Tampilkan konfirmasi kata sandi" aria-pressed="false">
+                        <svg class="eye-open" aria-hidden="true" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                        <svg class="eye-closed" aria-hidden="true" viewBox="0 0 24 24"><path d="m3 3 18 18M10.6 6.2A10 10 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-2.1 2.7M6.2 6.2C3.8 8 2.5 12 2.5 12s3.5 6 9.5 6a10 10 0 0 0 3-.5M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                    </button>
+                </div>
+                <span class="auth-field-error" id="ConfirmPasswordError" data-error-for="ConfirmPassword"></span>
+            </div>
+        </div>
+
+        <button class="auth-submit" type="submit" data-submit-button>
+            <span class="auth-spinner" aria-hidden="true"></span>
+            <span data-submit-label>Daftar</span>
+        </button>
+
+        <p class="auth-switch">Sudah punya akun? <a href="/auth/login">Masuk</a></p>
+    </form>
+</section>

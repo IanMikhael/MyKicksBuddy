@@ -1,0 +1,79 @@
+@model MyKicksBuddy.Models.Dtos.AddressFormModel
+@{
+    Layout = "_CustomerLayout";
+    var isEdit = Model.Id.HasValue;
+    ViewData["Title"] = isEdit ? "Edit Alamat" : "Tambah Alamat";
+}
+
+<div class="customer-container customer-workspace workspace-narrow">
+    <header class="workspace-heading">
+        <div>
+            <a class="workspace-back" asp-action="Index">← Kembali ke alamat</a>
+            <p class="workspace-eyebrow">ALAMAT CUSTOMER</p>
+            <h1>@(isEdit ? "Edit alamat" : "Tambah alamat")</h1>
+            <p>Koordinat digunakan untuk menghitung jarak lurus ke lokasi MyKicksBuddy dan menentukan ketersediaan antar-jemput.</p>
+        </div>
+    </header>
+
+    <form class="workspace-form" method="post" action="@(isEdit ? Url.Action("Edit", new { id = Model.Id }) : Url.Action("Create"))">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="workspace-validation" role="alert"></div>
+
+        <div class="workspace-field">
+            <label asp-for="Label">Label alamat</label>
+            <input asp-for="Label" placeholder="Contoh: Rumah atau Kantor" autocomplete="address-level1" />
+            <span asp-validation-for="Label"></span>
+        </div>
+        <div class="workspace-field">
+            <label asp-for="FullAddress">Alamat lengkap</label>
+            <textarea asp-for="FullAddress" rows="4" placeholder="Nama jalan, nomor, kelurahan, kecamatan, dan petunjuk lokasi"></textarea>
+            <span asp-validation-for="FullAddress"></span>
+        </div>
+
+        <div class="coordinate-toolbar">
+            <div><strong>Koordinat lokasi</strong><span>Gunakan lokasi perangkat atau isi koordinat secara manual.</span></div>
+            <button type="button" class="workspace-secondary-action" data-use-location>Gunakan lokasi saya</button>
+        </div>
+        <p class="location-feedback" data-location-feedback aria-live="polite"></p>
+        <div class="workspace-field-grid">
+            <div class="workspace-field">
+                <label asp-for="Latitude">Latitude</label>
+                <input asp-for="Latitude" type="number" step="any" inputmode="decimal" />
+                <span asp-validation-for="Latitude"></span>
+            </div>
+            <div class="workspace-field">
+                <label asp-for="Longitude">Longitude</label>
+                <input asp-for="Longitude" type="number" step="any" inputmode="decimal" />
+                <span asp-validation-for="Longitude"></span>
+            </div>
+        </div>
+
+        <label class="workspace-check"><input asp-for="IsDefault" /> <span>Jadikan alamat utama</span></label>
+        <div class="workspace-info">Alamat di luar radius 5 km tetap disimpan. Validasi pickup & delivery dilakukan kembali oleh server saat pesanan dibuat.</div>
+
+        <div class="workspace-form-actions">
+            <a class="workspace-secondary-action" asp-action="Index">Batal</a>
+            <button class="workspace-primary-action" type="submit">@(isEdit ? "Simpan perubahan" : "Simpan alamat")</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const button = document.querySelector('[data-use-location]');
+            const feedback = document.querySelector('[data-location-feedback]');
+            button?.addEventListener('click', () => {
+                if (!navigator.geolocation) { feedback.textContent = 'Browser tidak mendukung geolokasi.'; return; }
+                button.disabled = true; feedback.textContent = 'Mengambil lokasi perangkat…';
+                navigator.geolocation.getCurrentPosition(position => {
+                    document.getElementById('Latitude').value = position.coords.latitude.toFixed(7);
+                    document.getElementById('Longitude').value = position.coords.longitude.toFixed(7);
+                    feedback.textContent = 'Koordinat berhasil diisi. Periksa kembali alamat lengkap sebelum menyimpan.';
+                    button.disabled = false;
+                }, () => { feedback.textContent = 'Lokasi tidak dapat diakses. Izinkan akses lokasi atau isi koordinat manual.'; button.disabled = false; }, { enableHighAccuracy: true, timeout: 10000 });
+            });
+        })();
+    </script>
+}

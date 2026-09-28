@@ -1,0 +1,15 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="SVG">
+<path id="Vector" d="M7 26H19L23 18L31 20L37 16L41 22V29C41 30.6557 39.6557 32 38 32H7C5.34425 32 4 30.6557 4 29V28C4 26.8962 4.89617 26 6 26H7V26" stroke="#086BFF" stroke-opacity="0.8" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_2" d="M12 26V19" stroke="#086BFF" stroke-opacity="0.8" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_3" d="M20 26V20" stroke="#086BFF" stroke-opacity="0.8" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="Vector_4">
+<path d="M11 33C11 34.1038 11.8962 35 13 35C14.1038 35 15 34.1038 15 33C15 31.8962 14.1038 31 13 31C11.8962 31 11 31.8962 11 33V33" fill="#086BFF" fill-opacity="0.8"/>
+<path d="M11 33C11 34.1038 11.8962 35 13 35C14.1038 35 15 34.1038 15 33C15 31.8962 14.1038 31 13 31C11.8962 31 11 31.8962 11 33V33" stroke="#086BFF" stroke-opacity="0.8" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g id="Vector_5">
+<path d="M33 33C33 34.1038 33.8962 35 35 35C36.1038 35 37 34.1038 37 33C37 31.8962 36.1038 31 35 31C33.8962 31 33 31.8962 33 33V33" fill="#086BFF" fill-opacity="0.8"/>
+<path d="M33 33C33 34.1038 33.8962 35 35 35C36.1038 35 37 34.1038 37 33C37 31.8962 36.1038 31 35 31C33.8962 31 33 31.8962 33 33V33" stroke="#086BFF" stroke-opacity="0.8" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+</svg>

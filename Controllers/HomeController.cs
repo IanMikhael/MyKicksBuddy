@@ -1,14 +1,33 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using MyKicksBuddy.Models;
+using MyKicksBuddy.Models.Dtos;
+using MyKicksBuddy.Services;
 
 namespace MyKicksBuddy.Controllers;
 
 public class HomeController : Controller
 {
-    public IActionResult Index()
+    private readonly IOrderService _orderService;
+    private readonly ILogger<HomeController> _logger;
+
+    public HomeController(IOrderService orderService, ILogger<HomeController> logger)
     {
-        return View();
+        _orderService = orderService;
+        _logger = logger;
+    }
+
+    public async Task<IActionResult> Index()
+    {
+        try
+        {
+            return View(await _orderService.GetAllServicesAsync());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Landing page services could not be loaded.");
+            return View((IReadOnlyList<ServiceOptionDto>)[]);
+        }
     }
 
     public IActionResult Privacy()

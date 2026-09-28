@@ -4,9 +4,9 @@ namespace MyKicksBuddy.Services;
 
 public interface IOrderService
 {
-    Task<(bool Success, string? Error, long OrderId)> CreateOrderAsync(long customerId, CreateOrderRequest request);
+    Task<OrderCreationResult> CreateOrderAsync(long customerId, CreateOrderRequest request);
 
-    Task<(bool Success, string? Error)> UpdateStatusAsync(long orderId, string status, long staffId, string? notes);
+    Task<(bool Success, string? Error)> UpdateStatusAsync(long orderId, string status, long staffId, string staffRole, string? notes);
 
     Task<IEnumerable<OrderStatusLogResponse>> GetOrderLogsAsync(long orderId);
 
@@ -18,13 +18,17 @@ public interface IOrderService
 
     Task<OrderDetailResponse?> GetOrderDetailForStaffAsync(long orderId);
 
-    // Tambahan untuk Chatbot:
+    // Customer portal
+    Task<OrderDetailResponse?> GetOrderByCodeAsync(string orderCode, long customerId);
+    Task<IReadOnlyList<ServiceOptionDto>> GetAllServicesAsync();
+    Task<IReadOnlyList<PortalOrderRow>> GetAllOrdersAsync(string? status, DateTime? from, DateTime? to, int? limit = null);
+    Task<DashboardSummary> GetDashboardSummaryAsync();
+
+    // API integration / POS / Chatbot
     Task<OrderDetailResponse?> GetOrderByCodeAsync(string orderCode);
-    Task<IEnumerable<ServiceDto>> GetAllServicesAsync();
+    Task<IEnumerable<ServiceDto>> GetAllServiceDtosAsync();
     Task<(bool Success, string? Error, string? OrderCode, decimal TotalAmount)> CreateOrderForChatbotAsync(CreateChatbotOrderRequest request);
     Task<IReadOnlyList<ChatbotAddressResponse>> GetCustomerAddressesAsync(string phone);
-
-    // Tambahan untuk POS (Kasir):
     Task<(bool Success, string? Error, long OrderId, long CustomerId)> CreatePosOrderAsync(long staffId, CreatePosOrderRequest request);
     Task<long?> GetCustomerIdForOrderAsync(long orderId);
     Task<IEnumerable<StaffOrderListResponse>> GetOrdersForStaffAsync(string? channel, string? status);

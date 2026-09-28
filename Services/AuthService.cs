@@ -17,21 +17,25 @@ public class AuthService : IAuthService
 
     public async Task<(bool Success, string? Error, User? User)> RegisterAsync(RegisterRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.Phone))
+        var fullName = request.FullName.Trim();
+        var email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim().ToLowerInvariant();
+        var phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+
+        if (email is null && phone is null)
             return (false, "Email atau nomor telepon wajib diisi.", null);
 
-        if (!string.IsNullOrWhiteSpace(request.Email) && await _userRepository.GetByEmailOrPhoneAsync(request.Email) is not null)
-            return (false, "Email sudah terdaftar.", null);
+        if (fullName.Length == 0)
+            return (false, "Nama lengkap wajib diisi.", null);
 
-        if (!string.IsNullOrWhiteSpace(request.Phone) && await _userRepository.GetByEmailOrPhoneAsync(request.Phone) is not null)
-            return (false, "Nomor telepon sudah terdaftar.", null);
+        if (await _userRepository.ExistsByEmailOrPhoneAsync(email, phone))
+            return (false, "Email atau nomor telepon sudah terdaftar.", null);
 
         var user = new User
         {
             Role = "customer",
-            FullName = request.FullName,
-            Email = request.Email,
-            Phone = request.Phone,
+            FullName = fullName,
+            Email = email,
+            Phone = phone,
             SecurityStamp = Guid.NewGuid().ToString("N"),
             IsActive = true
         };
@@ -46,7 +50,7 @@ public class AuthService : IAuthService
 
     public async Task<(bool Success, string? Error, User? User)> LoginAsync(LoginRequest request)
     {
-        var user = await _userRepository.GetByEmailOrPhoneAsync(request.EmailOrPhone);
+        var user = await _userRepository.GetByEmailOrPhoneAsync(request.EmailOrPhone.Trim());
         if (user is null || !user.IsActive)
             return (false, "Email/nomor telepon atau password salah.", null);
 

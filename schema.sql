@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS customer_addresses (
     distance_km         DECIMAL(5,2) NOT NULL,
     is_within_radius    TINYINT(1) NOT NULL,
     is_default          TINYINT(1) NOT NULL DEFAULT 0,
+    is_active           TINYINT(1) NOT NULL DEFAULT 1,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_address_user FOREIGN KEY (user_id)
         REFERENCES users(id) ON DELETE CASCADE,
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS services (
     description         VARCHAR(255),
     price               DECIMAL(12,2) NOT NULL,
     estimated_hours     INT NOT NULL DEFAULT 24,
+    estimated_duration_days INT NULL,
     is_active           TINYINT(1) NOT NULL DEFAULT 1,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -145,9 +147,9 @@ CREATE TABLE IF NOT EXISTS payments (
     expires_at          DATETIME NULL,
     paid_at             DATETIME NULL,
     created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP 
+    updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                             ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_payments_order FOREIGN KEY (order_id) 
+    CONSTRAINT fk_payments_order FOREIGN KEY (order_id)
         REFERENCES orders(id),
     KEY ix_payments_order_id_created_at (order_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -166,7 +168,7 @@ CREATE TABLE IF NOT EXISTS payment_events (
     payment_type        VARCHAR(50) NULL,
     fraud_status        VARCHAR(20) NULL,
     created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_payment_events_payment FOREIGN KEY (payment_id) 
+    CONSTRAINT fk_payment_events_payment FOREIGN KEY (payment_id)
         REFERENCES payments(id),
     KEY ix_payment_events_payment_id_created_at (payment_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

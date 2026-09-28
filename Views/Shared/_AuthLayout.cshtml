@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Akses akun MyKicksBuddy." />
+    <title>@ViewData["Title"] - MyKicksBuddy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+</head>
+<body class="auth-page">
+    <header class="auth-header">
+        <div class="auth-header-inner">
+            <a class="brand-mark" href="/" aria-label="MyKicksBuddy beranda">
+                <svg aria-hidden="true" viewBox="0 0 32 32"><path d="M4 19c3 0 5-1.5 7-4 2-2.5 4-4 7-4s5 1 7 4l3 2c1 .8 1 2.5 0 3.5-1.5 1.5-4.5 2.5-10 2.5-7 0-12-1-14-4Z"/><path d="m8 18 5 4m-1-7 5 5m-1-7 5 5"/></svg>
+                <span>mykicksbuddy</span>
+            </a>
+            <a class="auth-home-link" href="/">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+                Kembali ke Beranda
+            </a>
+        </div>
+    </header>
+
+    <main class="auth-main">
+        @RenderBody()
+    </main>
+
+    <script src="~/js/auth.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
