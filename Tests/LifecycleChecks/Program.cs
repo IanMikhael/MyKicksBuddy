@@ -17,9 +17,9 @@ Check(OrderStatusWorkflow.ProgressStage(OrderStatusWorkflow.PickedUp) == 1, "pic
 Check(OrderStatusWorkflow.ProgressStage(OrderStatusWorkflow.InProcess) == 2, "processing at Diproses");
 Check(OrderStatusWorkflow.ProgressStage(OrderStatusWorkflow.Returned) == 2, "returned not yet Selesai");
 Check(OrderStatusWorkflow.ProgressStage(OrderStatusWorkflow.Completed) == 3, "completed at Selesai");
-Check(OrderStatusWorkflow.HistoryGroup(OrderStatusWorkflow.PendingPayment) == "active" &&
-      OrderStatusWorkflow.HistoryGroup(OrderStatusWorkflow.Completed) == "completed" &&
-      OrderStatusWorkflow.HistoryGroup(OrderStatusWorkflow.Cancelled) == "cancelled", "history groups");
+Check(OrderStatusWorkflow.HistoryGroup(OrderStatusWorkflow.PendingPayment) == OrderStatusWorkflow.HistoryGroupActive &&
+      OrderStatusWorkflow.HistoryGroup(OrderStatusWorkflow.Completed) == OrderStatusWorkflow.HistoryGroupCompleted &&
+      OrderStatusWorkflow.HistoryGroup(OrderStatusWorkflow.Cancelled) == OrderStatusWorkflow.HistoryGroupCancelled, "history groups");
 Check(!OrderStatusWorkflow.OperatorNextStatuses(OrderStatusWorkflow.PendingPayment, PaymentStatusWorkflow.Unpaid)
       .Contains(OrderStatusWorkflow.WaitingApproval), "operator cannot confirm payment");
 Check(!OrderStatusWorkflow.OperatorNextStatuses(OrderStatusWorkflow.WaitingPickup, PaymentStatusWorkflow.Unpaid)

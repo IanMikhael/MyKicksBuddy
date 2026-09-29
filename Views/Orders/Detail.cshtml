@@ -21,7 +21,7 @@
 
     <header class="status-order-summary">
         <span class="order-detail-status-icon"><img src="~/images/customer/figma/active-order-shoe.svg" alt="" /></span>
-        <div><p>@(order.HistoryGroup == "active" ? "PESANAN AKTIF" : "RIWAYAT PESANAN")</p><h1>@(firstItem?.ServiceName ?? "Pesanan perawatan")</h1><small>@order.OrderCode · @order.CreatedAt.ToString("dd MMM yyyy, HH:mm", culture)</small></div>
+        <div><p>@(order.HistoryGroup == OrderStatusWorkflow.HistoryGroupActive ? "PESANAN AKTIF" : "RIWAYAT PESANAN")</p><h1>@(firstItem?.ServiceName ?? "Pesanan perawatan")</h1><small>@order.OrderCode · @order.CreatedAt.ToString("dd MMM yyyy, HH:mm", culture)</small></div>
         <span class="customer-status-badge @tone">@label</span>
     </header>
 

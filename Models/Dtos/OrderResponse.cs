@@ -17,5 +17,5 @@ public class OrderResponse
     public string HistoryGroup => OrderStatusWorkflow.HistoryGroup(Status);
     public int ProgressStage => OrderStatusWorkflow.ProgressStage(Status);
     public string ProgressDescription => OrderStatusWorkflow.ProgressDescription(Status, PaymentStatus);
-    public bool IsActive => HistoryGroup == "active";
+    public bool IsActive => HistoryGroup == OrderStatusWorkflow.HistoryGroupActive;
 }

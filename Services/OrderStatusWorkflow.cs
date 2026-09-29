@@ -12,6 +12,9 @@ public static class OrderStatusWorkflow
     public const string Returned = "returned";
     public const string Completed = "completed";
     public const string Cancelled = "cancelled";
+    public const string HistoryGroupActive = "active";
+    public const string HistoryGroupCompleted = "completed";
+    public const string HistoryGroupCancelled = "cancelled";
     private static readonly IReadOnlyDictionary<string, string[]> AllowedTransitions = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
     {
         [PendingPayment] = [WaitingApproval, Cancelled], [WaitingApproval] = [Approved, Cancelled],
@@ -26,7 +29,7 @@ public static class OrderStatusWorkflow
     public static bool CanTransition(string currentStatus, string paymentStatus, string nextStatus) => CanTransition(currentStatus, nextStatus) && (nextStatus == Cancelled || string.Equals(paymentStatus, PaymentStatusWorkflow.Paid, StringComparison.OrdinalIgnoreCase));
     public static IReadOnlyList<string> NextStatuses(string current) => AllowedTransitions.TryGetValue(current, out var allowed) ? allowed : [];
     public static IReadOnlyList<string> OperatorNextStatuses(string current, string paymentStatus) => NextStatuses(current).Where(next => next != WaitingApproval && (next == Cancelled ? paymentStatus != PaymentStatusWorkflow.Paid : paymentStatus == PaymentStatusWorkflow.Paid)).ToArray();
-    public static string HistoryGroup(string? status) => status?.ToLowerInvariant() switch { Completed => "completed", Cancelled => "cancelled", _ => "active" };
+    public static string HistoryGroup(string? status) => status?.ToLowerInvariant() switch { Completed => HistoryGroupCompleted, Cancelled => HistoryGroupCancelled, _ => HistoryGroupActive };
     public static int ProgressStage(string? status) => status?.ToLowerInvariant() switch { PickedUp => 1, InProcess or ReadyToReturn or Returned => 2, Completed => 3, _ => 0 };
     public static string ProgressDescription(string? status, string? paymentStatus) => status?.ToLowerInvariant() switch
     {
