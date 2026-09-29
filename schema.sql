@@ -59,7 +59,8 @@ CREATE TABLE IF NOT EXISTS services (
     estimated_hours     INT NOT NULL DEFAULT 24,
     estimated_duration_days INT NULL,
     is_active           TINYINT(1) NOT NULL DEFAULT 1,
-    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY ux_services_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------
@@ -176,7 +177,7 @@ CREATE TABLE IF NOT EXISTS payment_events (
 -- ============================================================
 -- SEED DATA (Master Layanan)
 -- ============================================================
-INSERT INTO services (name, description, price, estimated_hours, is_active) VALUES
+INSERT IGNORE INTO services (name, description, price, estimated_hours, is_active) VALUES
 ('Deep Cleaning',  'Pembersihan mendalam seluruh bagian sepatu (upper, midsole, outsole, laces)', 50000.00, 24, 1),
 ('Fast Cleaning',  'Pembersihan kilat bagian luar dan midsole', 30000.00, 2, 1),
 ('Unyellowing',    'Perawatan khusus mengembalikan warna putih pada midsole yang menguning', 75000.00, 48, 1);
