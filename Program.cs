@@ -22,9 +22,12 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.Configure<MidtransOptions>(builder.Configuration.GetSection(MidtransOptions.SectionName));
 builder.Services.AddHttpClient<IMidtransSnapClient, MidtransSnapClient>(client =>
-    client.Timeout = TimeSpan.FromSeconds(15));
+    client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddHttpClient<IMidtransCoreClient, MidtransCoreClient>(client =>
+    client.Timeout = TimeSpan.FromSeconds(45));
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddHostedService<DevelopmentDataSeeder>();
 
 // Cookie authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -32,7 +35,34 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.LoginPath = "/auth/login";
         options.AccessDeniedPath = "/auth/login";
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (IsApiRequest(context.Request.Path))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (IsApiRequest(context.Request.Path))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
     });
+
+static bool IsApiRequest(PathString path) =>
+    path.StartsWithSegments("/api") ||
+    path.StartsWithSegments("/orders") ||
+    path.StartsWithSegments("/payments");
 
 var app = builder.Build();
 
@@ -41,6 +71,7 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
 app.UseRequestLocalization(new RequestLocalizationOptions()
@@ -48,7 +79,6 @@ app.UseRequestLocalization(new RequestLocalizationOptions()
     .AddSupportedCultures("en-US")
     .AddSupportedUICultures("en-US"));
 
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 

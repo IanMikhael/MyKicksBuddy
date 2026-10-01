@@ -1,8 +1,122 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Payment Playground";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<section class="playground-hero">
+    <div>
+        <span class="eyebrow">MYKICKSBUDDY · DEVELOPMENT</span>
+        <h1>Payment Playground</h1>
+        <p class="hero-copy">Uji alur pembayaran Midtrans Sandbox dari satu layar. Tidak ada uang nyata yang diproses.</p>
+    </div>
+    <div class="hero-status"><span class="status-dot"></span> Sandbox aktif</div>
+</section>
+
+<div id="playgroundAlert" class="alert d-none" role="alert"></div>
+
+<section class="playground-card real-checkout mb-4">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-5">
+            <div class="card-kicker">ORDER CHECKOUT · DATABASE FLOW</div>
+            <h2>Bayar order Sandbox</h2>
+            <p class="muted mb-0">Login dengan akun seed, pilih order dari MySQL, lalu buat pembayaran yang tersimpan di tabel <code>payments</code>.</p>
+        </div>
+        <div class="col-lg-7">
+            <div class="row g-2">
+                <div class="col-md-5"><input id="seedEmail" class="form-control" value="customer@mykicksbuddy.local" aria-label="Email akun Sandbox" /></div>
+                <div class="col-md-4"><input id="seedPassword" class="form-control" type="password" value="Sandbox123!" aria-label="Password akun Sandbox" /></div>
+                <div class="col-md-3 d-grid"><button id="loginButton" class="btn btn-dark" type="button">Login test</button></div>
+                <div class="col-md-9"><select id="orderSelect" class="form-select" disabled><option>Login untuk memuat order</option></select></div>
+                <div class="col-md-3 d-grid"><button id="payOrderButton" class="btn btn-primary" type="button" disabled>Bayar order</button></div>
+            </div>
+            <div id="realPaymentResult" class="real-payment-result d-none mt-3"></div>
+        </div>
+    </div>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="playground-card h-100">
+            <div class="card-kicker">01 · TRANSACTION SETUP</div>
+            <h2>Mulai transaksi uji</h2>
+            <p class="muted">Pilih nominal dan metode pembayaran. Server menyimpan server key, browser hanya menerima hasil transaksi.</p>
+            <form id="paymentForm" class="mt-4">
+                <label class="form-label" for="amount">Nominal (IDR)</label>
+                <div class="input-group input-group-lg mb-3"><span class="input-group-text">Rp</span><input id="amount" class="form-control" type="number" min="1" step="1" value="10000" required /></div>
+                <label class="form-label" for="expiry">Masa berlaku</label>
+                <select id="expiry" class="form-select form-select-lg mb-3"><option value="5">5 menit (testing cepat)</option><option value="60" selected>60 menit</option><option value="1440">24 jam</option></select>
+                <label class="form-label" for="bank">Bank untuk Core API</label>
+                <select id="bank" class="form-select form-select-lg mb-4"><option value="bca">BCA Virtual Account</option><option value="bni">BNI Virtual Account</option><option value="bri">BRI Virtual Account</option><option value="cimb">CIMB Virtual Account</option><option value="permata">Permata Virtual Account</option></select>
+                <div class="d-grid gap-2"><button class="btn btn-primary btn-lg" type="button" id="snapButton">Buka checkout Snap</button><button class="btn btn-outline-primary btn-lg" type="button" id="coreButton">Buat VA Core API</button><button class="btn btn-outline-dark btn-lg" type="button" id="qrisButton">Buat QRIS</button><button class="btn btn-outline-success btn-lg" type="button" id="gopayButton">Buat GoPay</button></div>
+            </form>
+            <p class="dev-only-note"><span>ⓘ</span> Halaman ini hanya tersedia saat environment Development.</p>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="playground-card result-card h-100">
+            <div class="d-flex justify-content-between align-items-start gap-3"><div><div class="card-kicker">02 · TRANSACTION RESULT</div><h2>Hasil transaksi</h2></div><span id="resultBadge" class="result-badge">Belum ada transaksi</span></div>
+            <div id="emptyResult" class="empty-result"><div class="empty-icon">↗</div><p>Hasil Snap atau Core API akan muncul di sini.</p></div>
+            <div id="resultContent" class="d-none">
+                <div class="result-grid"><div><span>Provider</span><strong id="resultProvider">—</strong></div><div><span>Order ID</span><strong id="resultOrderId" class="mono">—</strong></div><div><span>Status</span><strong id="resultStatus">—</strong></div><div><span>Status code</span><strong id="resultCode">—</strong></div></div>
+                <div id="redirectPanel" class="action-panel d-none"><p>Checkout Snap siap dibuka. Gunakan kartu/VA Sandbox di halaman Midtrans.</p><a id="redirectButton" class="btn btn-primary" target="_blank" rel="noopener">Buka halaman Snap ↗</a></div>
+                <div id="vaPanel" class="action-panel va-panel d-none"><span>Virtual Account</span><strong id="virtualAccount" class="va-number">—</strong><small id="vaBank">—</small></div>
+                <div id="walletPanel" class="action-panel wallet-panel d-none"><div class="wallet-actions"><div><span>QR pembayaran</span><img id="qrImage" class="qr-image" alt="QR pembayaran Sandbox" /></div><div id="deeplinkWrap" class="d-none"><p>Di ponsel, lanjutkan pembayaran melalui aplikasi GoPay.</p><a id="deeplinkButton" class="btn btn-success" target="_blank" rel="noopener">Buka GoPay ↗</a></div></div></div>
+                <div class="d-flex flex-wrap gap-2 mt-4"><button id="refreshButton" class="btn btn-outline-secondary d-none" type="button">Refresh status</button><button id="cancelButton" class="btn btn-outline-danger d-none" type="button">Batalkan transaksi uji</button></div>
+                <pre id="rawResponse" class="raw-response mt-4"></pre>
+            </div>
+        </div>
+    </div>
 </div>
+
+@section Scripts {
+<script>
+(() => {
+    const $ = (id) => document.getElementById(id);
+    let currentOrderId = null;
+    const setLoading = (loading) => { ['snapButton','coreButton','qrisButton','gopayButton'].forEach(id => $(id).disabled = loading); $('snapButton').textContent = loading ? 'Memproses…' : 'Buka checkout Snap'; $('coreButton').textContent = loading ? 'Memproses…' : 'Buat VA Core API'; };
+    const showAlert = (message, type = 'danger') => { const el = $('playgroundAlert'); el.textContent = message; el.className = `alert alert-${type}`; };
+    const clearAlert = () => $('playgroundAlert').className = 'alert d-none';
+    const showResult = (data) => {
+        currentOrderId = data.orderId; $('emptyResult').classList.add('d-none'); $('resultContent').classList.remove('d-none'); $('resultProvider').textContent = (data.provider || 'core').toUpperCase(); $('resultOrderId').textContent = data.orderId || '—'; $('resultStatus').textContent = data.status || '—'; $('resultCode').textContent = data.statusCode || '—'; $('resultBadge').textContent = data.status || 'created'; $('resultBadge').className = `result-badge ${data.status === 'settlement' ? 'success' : ''}`; $('rawResponse').textContent = JSON.stringify(data, null, 2);
+        $('redirectPanel').classList.toggle('d-none', !data.redirectUrl); if (data.redirectUrl) $('redirectButton').href = data.redirectUrl; $('vaPanel').classList.toggle('d-none', !data.virtualAccount); if (data.virtualAccount) { $('virtualAccount').textContent = data.virtualAccount; $('vaBank').textContent = (data.bank || '').toUpperCase(); }
+        const action = (data.actions || []).find(item => item.name === 'generate-qr-code-v2' || item.name === 'generate-qr-code'); const deeplink = (data.actions || []).find(item => item.name === 'deeplink-redirect'); const wallet = ['qris','gopay'].includes((data.provider || '').toLowerCase()) && data.transactionId; $('walletPanel').classList.toggle('d-none', !wallet); if (wallet && action) $('qrImage').src = `/api/payment-playground/qr-code/${encodeURIComponent(data.transactionId)}?paymentType=${data.provider}`; $('deeplinkWrap').classList.toggle('d-none', !deeplink); if (deeplink) $('deeplinkButton').href = deeplink.url;
+        $('refreshButton').classList.remove('d-none'); $('cancelButton').classList.remove('d-none');
+    };
+    const request = async (url, options = {}) => { const response = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...options }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.message || `Request gagal (HTTP ${response.status}).`); return data; };
+    const loadOrders = async () => {
+        const orders = await request('/orders'); const select = $('orderSelect'); select.innerHTML = '';
+        orders.forEach(order => { const option = document.createElement('option'); option.value = order.id; option.textContent = `Order #${order.id} · Rp ${Number(order.totalAmount).toLocaleString('id-ID')} · ${order.paymentStatus}`; option.disabled = order.paymentStatus === 'paid'; select.appendChild(option); });
+        select.disabled = orders.length === 0; $('payOrderButton').disabled = orders.length === 0;
+    };
+    $('loginButton').addEventListener('click', async () => {
+        clearAlert(); const body = new URLSearchParams({ EmailOrPhone: $('seedEmail').value, Password: $('seedPassword').value });
+        try { const response = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.message || 'Login gagal.'); await loadOrders(); showAlert('Login berhasil. Order Sandbox siap dibayar.', 'success'); }
+        catch (error) { showAlert(error.message); }
+    });
+    $('payOrderButton').addEventListener('click', async () => {
+        const orderId = $('orderSelect').value; if (!orderId) return; clearAlert(); $('payOrderButton').disabled = true;
+        try {
+            const payment = await request(`/orders/${encodeURIComponent(orderId)}/payments`, { method: 'POST' });
+            const panel = $('realPaymentResult');
+            const status = document.createElement('strong');
+            const detail = document.createElement('span');
+            const link = document.createElement('a');
+            status.textContent = `Status: ${payment.status}`;
+            detail.textContent = `Payment #${payment.id} tersimpan untuk order #${payment.orderId}`;
+            link.className = 'btn btn-sm btn-primary';
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.href = payment.redirectUrl;
+            link.textContent = 'Buka Snap ↗';
+            panel.replaceChildren(status, detail, link);
+            panel.classList.remove('d-none');
+        }
+        catch (error) { showAlert(error.message); }
+        finally { $('payOrderButton').disabled = false; }
+    });
+    const create = async (provider) => { clearAlert(); setLoading(true); try { showResult(await request(`/api/payment-playground/${provider}`, { method: 'POST', body: JSON.stringify({ amount: Number($('amount').value), bank: $('bank').value, expiryMinutes: Number($('expiry').value) }) })); } catch (error) { showAlert(error.message); } finally { setLoading(false); } };
+    $('snapButton').addEventListener('click', () => create('snap')); $('coreButton').addEventListener('click', () => create('core')); $('qrisButton').addEventListener('click', () => create('qris')); $('gopayButton').addEventListener('click', () => create('gopay'));
+    $('refreshButton').addEventListener('click', async () => { if (!currentOrderId) return; try { showResult(await request(`/api/payment-playground/${encodeURIComponent(currentOrderId)}/status`)); } catch (error) { showAlert(error.message); } });
+    $('cancelButton').addEventListener('click', async () => { if (!currentOrderId || !confirm('Batalkan transaksi uji ini?')) return; try { showResult({ ...(await request(`/api/payment-playground/${encodeURIComponent(currentOrderId)}/cancel`, { method: 'POST' })), provider: 'core' }); showAlert('Transaksi uji dibatalkan.', 'success'); } catch (error) { showAlert(error.message); } });
+})();
+</script>
+}

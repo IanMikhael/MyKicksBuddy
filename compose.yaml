@@ -1,10 +1,44 @@
 services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-mykicksbuddy}
+      MYSQL_USER: ${MYSQL_USER:-mykicksbuddy}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-mykicksbuddy_dev}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_dev_only}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./Database/Schema/001_base_schema.sql:/docker-entrypoint-initdb.d/010_base_schema.sql:ro
+      - ./Database/Migrations/001_create_payments.sql:/docker-entrypoint-initdb.d/020_create_payments.sql:ro
+      - ./Database/Seed/001_services.sql:/docker-entrypoint-initdb.d/030_services.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   web:
     build:
       context: .
     ports:
       - "8080:8080"
+    volumes:
+      - data_protection_keys:/root/.aspnet/DataProtection-Keys
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: "8080"
-      ConnectionStrings__Default: ${DB_CONNECTION_STRING-}
+      ConnectionStrings__Default: ${DB_CONNECTION_STRING:-Server=db;Port=3306;Database=mykicksbuddy;User ID=mykicksbuddy;Password=mykicksbuddy_dev;Allow User Variables=true}
+      DevelopmentSeed__Enabled: "true"
+      Midtrans__ServerKey: ${MIDTRANS_SERVER_KEY-}
+      Midtrans__IsProduction: ${MIDTRANS_IS_PRODUCTION-false}
+      Midtrans__ExpiryMinutes: ${MIDTRANS_EXPIRY_MINUTES-1440}
+
+volumes:
+  mysql_data:
+  data_protection_keys:
